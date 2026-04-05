@@ -19,8 +19,9 @@ This project follows the LLM Wiki pattern.
 ## Read order
 
 1. `wiki/index.md`
-2. relevant pages in `wiki/projects/`, `wiki/sources/`, `wiki/decisions/`
-3. `raw/` only when more detail is needed
+2. `wiki/log.md` — what happened recently
+3. relevant pages in `wiki/projects/`, `wiki/sources/`, `wiki/decisions/`
+4. `raw/` only when more detail is needed
 
 ## Operations
 

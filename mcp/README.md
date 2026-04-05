@@ -1,22 +1,10 @@
 # MCP
 
-This transport is optional.
-
-`agent-wiki` works with:
-
-- `SKILL.md` as the user-facing workflow
-- `cli/wikictl` as the local engine
-- `mcp/server.mjs` as an optional tool transport for agents that speak MCP
-
-Run:
+Optional transport for agents that speak MCP.
 
 ```bash
 npm install
 npm run mcp
 ```
 
-Or attach to an external instance:
-
-```bash
-npm run mcp -- --instance origin-labs
-```
+Exposes the same operations as `cli/wikictl` over the tool transport.

@@ -103,12 +103,15 @@ Daily flow:
 ```text
 /agent-wiki start
 ...work normally...
+/agent-wiki progress
+...keep working...
 /agent-wiki finish
 ```
 
 What that means:
 
 - `/agent-wiki start` reads the wiki, checks recent context, and asks a few good questions.
+- `/agent-wiki progress` mid-session checkpoint — checks drift, captures emerging decisions.
 - `/agent-wiki finish` proposes what should be written back, then updates the wiki.
 - In Mode 1, it works in the local wiki.
 - In Mode 2, it uses this repo as memory while work happens elsewhere.

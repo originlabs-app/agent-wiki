@@ -140,7 +140,7 @@ Show exactly what you'd write and where. The user approves before anything is wr
 
 **Cross-linking:** "The decision about PayPal should link to the billing project page and the payment-gateway source page."
 
-### 4. Ask 2-5 questions
+### 4. Ask 2-5 socratic questions
 
 - "The main outcome I see is [X]. Is there anything else worth capturing?"
 - "You hit a wall on [Y]. Should I record it as a dead end, or is it still open?"
