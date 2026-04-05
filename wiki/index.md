@@ -19,20 +19,20 @@ Read this file first. Rebuilt by `wikictl heal`.
 
 | Project | Status | Updated | Wiki | Summary |
 |---------|--------|---------|------|---------|
-| BSACopilot | active | 2026-04-05 | [[wiki/projects/bsacopilot]] | SaaS public tender monitoring — scraping + scoring bots |
+| Acme API | active | 2026-04-05 | [[wiki/projects/acme-api]] | REST API for inventory management — FastAPI + PostgreSQL |
 
 ## Sources
 
 | Source | Date | Project | Wiki |
 |--------|------|---------|------|
-| Visio Emile — Roadmap | 2026-04-02 | bsacopilot | [[wiki/sources/2026-04-02-visio-emile-roadmap]] |
-| Visio Paul — Nukema | 2026-03-30 | bsacopilot | [[wiki/sources/2026-03-30-visio-paul-nukema]] |
+| API Requirements v2 | 2026-03-10 | acme-api | [[wiki/sources/2026-03-10-api-requirements-v2]] |
+| Client meeting — Q2 roadmap | 2026-04-01 | acme-api | [[wiki/sources/2026-04-01-client-meeting-roadmap]] |
 
 ## Decisions
 
 | Decision | Date | Status | Project | Wiki |
 |----------|------|--------|---------|------|
-| Two-bot architecture | 2026-04-02 | active | bsacopilot | [[wiki/decisions/2026-04-02-two-bot-architecture]] |
+| FastAPI over Express | 2026-03-15 | active | acme-api | [[wiki/decisions/2026-03-15-fastapi-over-express]] |
 
 ## References
 
