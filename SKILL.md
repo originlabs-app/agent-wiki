@@ -159,6 +159,10 @@ Mid-session checkpoint. Quick but thorough.
 
 **Health check:** "Quick lint shows 2 orphan pages and 1 dead link in the wiki. Want me to fix them?"
 
+**Save an answer:** "That analysis I just gave you on [topic] — want me to save it to outputs/ so it's not lost in the chat?"
+
+**Knowledge gaps:** "Based on what we've been discussing, the wiki is missing [X]. Want me to flag it or create a stub page?"
+
 ### 4. Ask 1-3 focused questions
 
 Shorter than start. Just enough to course-correct:
@@ -199,6 +203,10 @@ Show exactly what you'd write and where. The user approves before anything is wr
 **New source page:** "That API doc you pasted — I'd save it to raw/ and create wiki/sources/2026-04-05-paypal-api-docs.md."
 
 **Answer filing:** "The analysis you asked me to do about pricing — that's worth keeping. I'd save it to outputs/ and reference it from the project page."
+
+**Gap detection:** "Based on everything in the wiki, here are the 2-3 biggest gaps I see in the knowledge base: [X, Y, Z]. Want me to suggest sources to fill them?"
+
+**Cross-source comparison:** "During this session we touched info from source A and source B. They disagree on [topic]. Want me to flag this contradiction in the project page?"
 
 **Contradiction resolution:** "The wiki says timeline is 6 weeks. Based on today's meeting it's now 8 weeks. I'd update the project page and mark the old claim as [superseded]."
 
