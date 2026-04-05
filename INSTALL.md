@@ -49,7 +49,9 @@ If they give a path, check if raw/, wiki/, and outputs/ exist there. If not, cre
 
 This helps me set up the right starting structure."
 
-Based on the answer, you can suggest project pages to create or skip this if they want to start empty.
+Based on the answer, personalize the `## What This Is` section in AGENTS.md. Replace the placeholder comment with a concrete description tailored to their use case. Keep it to 2-3 sentences.
+
+You can also suggest initial project pages to create, or skip this if they want to start empty.
 
 ### Question 4: Mode?
 
