@@ -47,6 +47,13 @@ Show exactly what you'd write and where. The user approves before anything is wr
 
 **Cross-linking:** "The decision about PayPal should link to the billing project page and the payment-gateway source page."
 
+**Rendered outputs:** "The analysis I did could be useful as a slide deck or a chart. Want me to:
+- Generate a Marp slide deck in outputs/?
+- Create a chart or diagram?
+- Write a formatted report?
+
+Outputs go to outputs/ and can be filed back into wiki/ if they have lasting value."
+
 ## 4. Ask 2-5 socratic questions
 
 - "The main outcome I see is [X]. Is there anything else worth capturing?"

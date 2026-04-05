@@ -61,6 +61,17 @@ Based on tensions observed. Always hypothesize before asking:
 
 2-4 concrete steps based on the answers.
 
+## 6. Multi-step deep queries
+
+When answering complex questions against the wiki, use multi-step retrieval:
+1. Read wiki/index.md — understand what topics exist
+2. Read relevant concept pages — get the synthesis
+3. If concept pages cite sources, read those source pages for deeper detail
+4. If source pages reference raw files, read the original raw material
+5. Synthesize across all levels. Cite with [[page-name]].
+
+This is the L0→L1→L2→L3 progressive disclosure pattern.
+
 ---
 
 ## How to detect agent-wiki

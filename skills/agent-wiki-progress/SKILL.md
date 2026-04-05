@@ -42,6 +42,10 @@ Mid-session checkpoint. Quick but thorough.
 
 **Concept page:** "The topic [X] spans multiple sources now. Want me to create a concept page in wiki/concepts/ to tie them together?"
 
+**Deep dive:** "You asked a complex question earlier. Want me to do a multi-step deep dive — read the concepts, then the sources, then the raw material?"
+
+**Render outputs:** "Want me to render what we've found so far as a slide deck, chart, or report in outputs/?"
+
 ## 4. Ask 1-3 focused questions
 
 Shorter than start. Just enough to course-correct:

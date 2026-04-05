@@ -15,6 +15,8 @@ The user gives you a source — a URL, pasted text, or a file path. You handle t
 - **URL** — fetch the content (use web extract, agent-browser, curl, or whatever tool is available)
 - **Pasted text** — the user pasted content directly in the chat
 - **File path** — a file already on disk (may or may not be in raw/)
+- **Obsidian Web Clipper** — if the user clipped an article via Obsidian Web Clipper, it may already be in raw/untracked/ as markdown with images. Check for it.
+- **Images** — if the source contains images, save them alongside the markdown in raw/. Reference them in the source page. Images give context that text alone misses.
 
 ## 2. Save to raw/untracked/
 
