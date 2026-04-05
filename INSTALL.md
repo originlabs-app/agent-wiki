@@ -1,113 +1,111 @@
 # Install agent-wiki
 
-You are an LLM agent. A human has asked you to set up agent-wiki on their machine. Follow these instructions carefully.
+You are an LLM agent. A human has asked you to set up agent-wiki on their machine.
 
-**Rules:**
+## Rules
+
 - **NEVER overwrite or modify any existing config file** (CLAUDE.md, AGENTS.md, SOUL.md, etc.)
 - **Install the skill ONCE, symlink for each agent**
-- **If unsure, ask the user before modifying anything**
+- **If unsure, ask the user before modifying anything outside of skills directories**
 
-## Step 1: Ensure the repo is ready
+## Step 1: Detect what's installed
+
+Run silently — do not ask the user. Just check what exists:
 
 ```bash
-chmod +x ./cli/wikictl
-./cli/wikictl init
+[ -d ~/.claude ] && echo "Claude Code: detected" || echo "Claude Code: not found"
+[ -d ~/.codex ] || [ -d ~/.agents ] && echo "Codex: detected" || echo "Codex: not found"
+[ -d ~/.cursor ] && echo "Cursor: detected" || echo "Cursor: not found"
+[ -d ~/.hermes ] && echo "Hermes: detected" || echo "Hermes: not found"
 ```
 
-## Step 2: Install the skill
+Report to the user: "I detected [agents]. I'll install the agent-wiki skill for each of them."
 
-The skill lives in ONE place. Each agent gets a symlink. This is the same pattern used by agent-browser.
+## Step 2: Ask ONE question
 
-### Install source skill
+Ask the user:
+
+> Do you have an existing folder or Obsidian vault where you want to store the wiki?
+> If yes, give me the path (e.g., `~/Documents/my-vault`).
+> If no, I'll use the wiki built into this repo.
+
+**If the user gives a path:**
+- Check if `wiki/` and `raw/` exist inside that path.
+- If they don't exist, create them: `mkdir -p <path>/wiki <path>/raw`
+- Create an instance config:
 
 ```bash
+mkdir -p ~/.agent-wiki/instances
+# Ask: "What name for this instance?" (e.g., my-vault, work, research)
+cat > ~/.agent-wiki/instances/<name>.conf << EOF
+WIKI_ROOT=<path>/wiki
+RAW_ROOT=<path>/raw
+EOF
+```
+
+**If the user says no (or doesn't have a vault):**
+- Skip this step. The repo's built-in `wiki/` and `raw/` work as default.
+
+## Step 3: Install the skill
+
+```bash
+# Ensure repo is ready
+chmod +x ./cli/wikictl
+./cli/wikictl init
+
+# Install source skill (one copy)
 mkdir -p ~/.agents/skills/agent-wiki
 cp SKILL.md ~/.agents/skills/agent-wiki/SKILL.md
 ```
 
-### Symlink for each detected agent
+## Step 4: Symlink for each detected agent
 
-Only create symlinks for agents that are actually installed on the machine.
+Only create symlinks for agents detected in Step 1.
 
 ```bash
-# Claude Code (if ~/.claude/ exists)
+# Claude Code
 [ -d ~/.claude ] && mkdir -p ~/.claude/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.claude/skills/agent-wiki
 
-# Codex (already in ~/.agents/skills/, nothing to do)
+# Codex — already in ~/.agents/skills/, nothing to do
 
-# Cursor (if ~/.cursor/ exists)
+# Cursor
 [ -d ~/.cursor ] && mkdir -p ~/.cursor/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.cursor/skills/agent-wiki
 
-# Hermes (if ~/.hermes/ exists)
+# Hermes (default profile)
 [ -d ~/.hermes ] && mkdir -p ~/.hermes/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.hermes/skills/agent-wiki
-```
 
-### Hermes profiles
-
-If Hermes has multiple profiles (e.g., `~/.hermes/profiles/marc/`), symlink into each:
-
-```bash
+# Hermes additional profiles
 for profile_dir in ~/.hermes/profiles/*/; do
   [ -d "$profile_dir" ] && mkdir -p "${profile_dir}skills" && ln -sfn ~/.agents/skills/agent-wiki "${profile_dir}skills/agent-wiki"
 done
 ```
 
-## Step 3: Configure an instance (optional)
-
-If the user has an existing vault or folder they want agent-wiki to point to:
-
-1. Ask: "What name for this instance?" (e.g., `my-vault`)
-2. Ask: "Where is your wiki folder?" (e.g., `~/Documents/my-vault/wiki`)
-3. Ask: "Where should raw sources go?" (e.g., `~/Documents/my-vault/raw`)
-4. Create the config:
-
-```bash
-mkdir -p ~/.agent-wiki/instances
-cat > ~/.agent-wiki/instances/<name>.conf << EOF
-WIKI_ROOT=/path/to/wiki
-RAW_ROOT=/path/to/raw
-EOF
-```
-
-5. Test: `./cli/wikictl --instance <name> status`
-
-If the user doesn't have an existing vault, skip this. The wiki in the repo works as default.
-
-## Step 4: Verify
+## Step 5: Verify
 
 ```bash
 ./cli/wikictl status
 ./cli/wikictl lint
+ls -la ~/.agents/skills/agent-wiki/SKILL.md
 ```
 
-Check that the symlinks resolve:
+If an instance was configured:
 ```bash
-ls -la ~/.claude/skills/agent-wiki 2>/dev/null
-ls -la ~/.agents/skills/agent-wiki 2>/dev/null
-ls -la ~/.hermes/skills/agent-wiki 2>/dev/null
+./cli/wikictl --instance <name> status
 ```
 
-Report results to the user.
+## Step 6: Report to the user
 
-## Step 5: Clean up old installs (if needed)
-
-If previous versions of agent-wiki were installed differently (bootstrap-local.sh, direct file copies, etc.), clean them up:
-
-- Remove old symlinks to `adapters/` directory (no longer exists)
-- Remove duplicate skills (e.g., `~/.hermes/skills/llm-wiki-maintainer/` if it was an old version)
-- **Do NOT remove user-created files** — ask before deleting anything you didn't create
-
-## Summary
+Tell the user what was done:
 
 ```
-~/.agents/skills/agent-wiki/SKILL.md   ← source (one copy)
-~/.claude/skills/agent-wiki/           ← symlink → ~/.agents/skills/agent-wiki
-~/.cursor/skills/agent-wiki/           ← symlink → ~/.agents/skills/agent-wiki
-~/.hermes/skills/agent-wiki/           ← symlink → ~/.agents/skills/agent-wiki
-~/.agent-wiki/instances/<name>.conf    ← instance config (optional)
-```
+Installed agent-wiki skill for: [list of detected agents]
+Source: ~/.agents/skills/agent-wiki/SKILL.md
+Instance: [name → path] (or: using built-in wiki)
 
 What was NOT modified:
-- No global configs (CLAUDE.md, AGENTS.md, SOUL.md)
-- No existing skills overwritten
-- No files outside of skills directories
+- Your global configs (CLAUDE.md, AGENTS.md, SOUL.md)
+- Your existing skills
+- Any files outside of skills directories
+
+Next: open any agent in this repo. It will read the skill automatically.
+```
