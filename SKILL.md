@@ -83,12 +83,27 @@ Save the source as a markdown file in raw/untracked/ with a dated name:
 
 If the source is already in raw/, skip this step.
 
-### 3. Read and discuss
+### 3. Read, analyze, and discuss
 
 - Read the full source content
+- Read the relevant existing wiki pages
 - Summarize the key takeaways (3-5 bullet points)
-- Ask the user: "Which project does this relate to?" (or hypothesize: "This looks related to [project]. Correct?")
-- Ask: "Anything specific you want me to emphasize or ignore?"
+
+Then ask 2-5 socratic questions based on what the source says vs what the wiki knows:
+
+**Project:** "This looks related to [project]. Correct?" (don't ask "which project?" if you can guess)
+
+**Contradictions:** "The source says [X] but the wiki says [Y]. Which is current?"
+
+**Decisions:** "The source describes 3 approaches. We only documented approach 1. Should I add the alternatives to the decisions page?"
+
+**Missing context:** "The source mentions [person/tool/concept] that doesn't exist in the wiki yet. Should I create a page?"
+
+**Emphasis:** "This source covers [A, B, C]. What matters most to you? Or should I compile everything?"
+
+**Staleness:** "The wiki page for this project hasn't been updated since [date]. This source has fresher info. Want me to refresh the whole page?"
+
+Always hypothesize before asking. Confront the source with the wiki. The goal is compilation, not just summarization.
 
 ### 4. Compile into the wiki
 
