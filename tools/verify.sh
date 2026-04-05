@@ -26,6 +26,20 @@ EOF
   test -f raw/ingested/sample-source.md
   test ! -f raw/untracked/sample-source.md
   grep -Fq '[[raw/ingested/sample-source.md]]' wiki/projects/sample-project.md
+
+  # Test compile
+  mkdir -p "$TMPDIR/repo/raw/untracked"
+  cat > "$TMPDIR/repo/raw/untracked/compile-test.md" << 'EOF'
+# Compile Test
+This source tests the compile command.
+EOF
+  ./tools/wikictl compile
+  test -f raw/ingested/compile-test.md
+  test ! -f raw/untracked/compile-test.md
+
+  # Test file-back
+  echo "Test answer content" | ./tools/wikictl file-back "Sample Project" "test-answer" --type source
+  test -f wiki/sources/*test-answer*.md
 )
 
 mkdir -p "$TMPDIR/external-vault/wiki" "$TMPDIR/external-vault/raw/untracked"

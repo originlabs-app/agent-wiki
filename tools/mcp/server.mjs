@@ -149,6 +149,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       description: "Rebuild the wiki index from project pages.",
       inputSchema: { type: "object", properties: {} },
     },
+    {
+      name: "compile",
+      description: "Batch-ingest all pending sources in raw/untracked/.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          project: { type: "string", description: "Optional project name to file sources under." },
+        },
+      },
+    },
+    {
+      name: "file_back",
+      description: "Create a wiki page from content, update index + log.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          project: { type: "string" },
+          title: { type: "string" },
+          type: { type: "string", enum: ["source", "decision", "concept"], default: "source" },
+          content: { type: "string", description: "Body content for the page." },
+        },
+        required: ["project", "title"],
+      },
+    },
+    {
+      name: "lint",
+      description: "Check that core contract files exist and line up.",
+      inputSchema: { type: "object", properties: {} },
+    },
+    {
+      name: "sync",
+      description: "Optional end-of-session write-back plus lint/status.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          agent: { type: "string" },
+          op: { type: "string" },
+          description: { type: "string" },
+        },
+      },
+    },
   ],
 }));
 
@@ -185,6 +226,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
   if (name === "heal") {
     return { content: [{ type: "text", text: runCli(["heal"]) }] };
+  }
+  if (name === "compile") {
+    const compileArgs = ["compile"];
+    if (args.project) compileArgs.push(args.project);
+    return { content: [{ type: "text", text: runCli(compileArgs) }] };
+  }
+  if (name === "file_back") {
+    const fbArgs = ["file-back", args.project, args.title];
+    if (args.type) fbArgs.push("--type", args.type);
+    const result = spawnSync(CLI, [...CLI_CONTEXT, ...fbArgs], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+      input: args.content || "",
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw new Error((result.stderr || result.stdout || "file-back failed").trim());
+    return { content: [{ type: "text", text: (result.stdout || "").trim() }] };
+  }
+  if (name === "lint") {
+    return { content: [{ type: "text", text: runCli(["lint"]) }] };
+  }
+  if (name === "sync") {
+    const syncArgs = ["sync"];
+    if (args.agent) syncArgs.push(args.agent, args.op || "", args.description || "");
+    return { content: [{ type: "text", text: runCli(syncArgs) }] };
   }
 
   throw new Error(`Unknown tool: ${name}`);

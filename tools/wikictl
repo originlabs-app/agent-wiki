@@ -750,6 +750,60 @@ rebuild_index() {
     done < <(find "$WIKI/projects" -maxdepth 1 -name '*.md' ! -name '_template.md' | sort)
 
     echo
+    echo "## Sources"
+    echo
+    echo "| Source | Date | Wiki | Summary |"
+    echo "|--------|------|------|---------|"
+
+    while IFS= read -r file; do
+      local src_title src_date src_summary src_link
+      src_title="$(frontmatter_value "$file" title || true)"
+      src_date="$(frontmatter_value "$file" date || true)"
+      [[ -n "$src_title" ]] || src_title="$(basename "$file" .md)"
+      [[ -n "$src_date" ]] || src_date="$(today)"
+      src_summary="$(extract_summary "$file")"
+      src_summary="${src_summary//|/\\|}"
+      src_link="[[wiki/sources/$(basename "$file" .md)]]"
+      printf '| %s | %s | %s | %s |\n' "$src_title" "$src_date" "$src_link" "$src_summary"
+    done < <(find "$WIKI/sources" -maxdepth 1 -name '*.md' ! -name '_template.md' 2>/dev/null | sort)
+
+    echo
+    echo "## Decisions"
+    echo
+    echo "| Decision | Date | Wiki | Summary |"
+    echo "|----------|------|------|---------|"
+
+    while IFS= read -r file; do
+      local dec_title dec_date dec_summary dec_link
+      dec_title="$(frontmatter_value "$file" decision || true)"
+      dec_date="$(frontmatter_value "$file" date || true)"
+      [[ -n "$dec_title" ]] || dec_title="$(basename "$file" .md)"
+      [[ -n "$dec_date" ]] || dec_date="$(today)"
+      dec_summary="$(extract_summary "$file")"
+      dec_summary="${dec_summary//|/\\|}"
+      dec_link="[[wiki/decisions/$(basename "$file" .md)]]"
+      printf '| %s | %s | %s | %s |\n' "$dec_title" "$dec_date" "$dec_link" "$dec_summary"
+    done < <(find "$WIKI/decisions" -maxdepth 1 -name '*.md' ! -name '_template.md' 2>/dev/null | sort)
+
+    echo
+    echo "## Concepts"
+    echo
+    echo "| Concept | Updated | Wiki | Summary |"
+    echo "|---------|---------|------|---------|"
+
+    while IFS= read -r file; do
+      local con_title con_updated con_summary con_link
+      con_title="$(frontmatter_value "$file" concept || true)"
+      con_updated="$(frontmatter_value "$file" updated || true)"
+      [[ -n "$con_title" ]] || con_title="$(basename "$file" .md)"
+      [[ -n "$con_updated" ]] || con_updated="$(today)"
+      con_summary="$(extract_summary "$file")"
+      con_summary="${con_summary//|/\\|}"
+      con_link="[[wiki/concepts/$(basename "$file" .md)]]"
+      printf '| %s | %s | %s | %s |\n' "$con_title" "$con_updated" "$con_link" "$con_summary"
+    done < <(find "$WIKI/concepts" -maxdepth 1 -name '*.md' ! -name '_template.md' 2>/dev/null | sort)
+
+    echo
     echo "## References"
     echo
     echo "- [[wiki/log]]"

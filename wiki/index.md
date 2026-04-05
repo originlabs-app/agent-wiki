@@ -1,6 +1,6 @@
 ---
 type: wiki-index
-updated: 2026-04-05
+updated: 2026-04-06
 maintained-by: [agent-wiki]
 ---
 
@@ -31,16 +31,21 @@ operation.
 
 | Source | Date | Wiki | Summary |
 |--------|------|------|---------|
+| API Requirements v2 | 2026-03-10 | [[wiki/sources/2026-03-10-api-requirements-v2]] | See page |
+| Client meeting — Q2 roadmap review | 2026-04-01 | [[wiki/sources/2026-04-01-client-meeting-roadmap]] | See page |
 
 ## Decisions
 
 | Decision | Date | Wiki | Summary |
 |----------|------|------|---------|
+| Use FastAPI instead of Express.js for the API layer | 2026-03-15 | [[wiki/decisions/2026-03-15-fastapi-over-express]] | See page |
+| Switch to Stripe Connect for payouts | 2026-04-01 | [[wiki/decisions/2026-04-01-stripe-connect]] | See page |
 
 ## Concepts
 
 | Concept | Updated | Wiki | Summary |
 |---------|---------|------|---------|
+| REST API Design | 2026-04-05 | [[wiki/concepts/rest-api-design]] | Patterns and conventions for building REST APIs. Covers endpoint design, authentication, error handling, and versioning. |
 
 ## References
 
