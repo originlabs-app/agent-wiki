@@ -1,0 +1,14 @@
+{
+  "name": "agent-wiki",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Karpathy-style multi-agent knowledge base starter pack",
+  "scripts": {
+    "mcp": "node mcp/server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
+

@@ -1,0 +1,45 @@
+name: agent-wiki
+version: 0.2.0
+description: Karpathy-style shared knowledge base for multi-agent workflows
+
+read_order:
+  - wiki/index.md
+  - wiki/projects/{project}.md
+  - wiki/sources/{source}.md
+  - wiki/decisions/{decision}.md
+  - raw/{source}
+
+write_targets:
+  - wiki/projects/{project}.md
+  - wiki/sources/{source}.md
+  - wiki/decisions/{decision}.md
+  - wiki/index.md
+  - wiki/log.md
+
+page_types:
+  project:
+    template: wiki/projects/_template.md
+    naming: "wiki/projects/{slug}.md"
+    frontmatter_type: wiki-page
+  source:
+    template: wiki/sources/_template.md
+    naming: "wiki/sources/{date}-{slug}.md"
+    frontmatter_type: wiki-source
+  decision:
+    template: wiki/decisions/_template.md
+    naming: "wiki/decisions/{date}-{slug}.md"
+    frontmatter_type: wiki-decision
+
+invariants:
+  - raw_is_immutable
+  - wiki_is_compiled_knowledge
+  - one_log_entry_per_operation
+  - adapters_are_thin
+  - write_back_after_every_session
+  - contradictions_leave_trace
+  - confidence_markers_required
+
+confidence_markers:
+  confirmed: "verified by human or multiple sources"
+  hypothesis: "agent analysis, not yet verified"
+  stale: "older than 14 days without refresh"

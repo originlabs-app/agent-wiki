@@ -1,0 +1,615 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WIKI="$ROOT/wiki"
+RAW="$ROOT/raw"
+LOG="$WIKI/log.md"
+INDEX="$WIKI/index.md"
+TEMPLATE="$WIKI/projects/_template.md"
+
+today() {
+  date +%F
+}
+
+slugify() {
+  printf '%s' "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | tr ' /' '--' \
+    | sed -E 's/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-+//; s/-+$//'
+}
+
+project_file() {
+  local project="$1"
+  printf '%s/wiki/projects/%s.md' "$ROOT" "$(slugify "$project")"
+}
+
+relativize() {
+  local path="$1"
+  case "$path" in
+    "$ROOT"/*) printf '%s\n' "${path#"$ROOT"/}" ;;
+    ./*) printf '%s\n' "${path#./}" ;;
+    *) printf '%s\n' "$path" ;;
+  esac
+}
+
+usage() {
+  cat <<'EOF'
+wikictl - local workflow helper
+
+Usage:
+  wikictl init
+  wikictl status
+  wikictl lint
+  wikictl heal
+  wikictl ingest <project> <source...>
+  wikictl query <terms...>
+  wikictl sync [agent op description...]
+  wikictl log <agent> <op> <description...>
+
+Commands:
+  init     Ensure the base directory structure exists.
+  status   Show a short health summary.
+  lint     Check that the core contract files exist and line up.
+  heal     Rebuild the wiki index from project pages.
+  ingest   Register one or more source files against a project page.
+  query    Search across wiki/ and raw/ for terms.
+  sync     Optional end-of-session write-back plus lint/status.
+  log      Append one entry to wiki/log.md.
+EOF
+}
+
+ensure_dirs() {
+  mkdir -p "$WIKI/projects" "$RAW"
+}
+
+write_default_index() {
+  cat >"$INDEX" <<'EOF'
+---
+type: wiki-index
+updated: 2026-04-05
+maintained-by: [agent-wiki]
+---
+
+# Wiki Index
+
+Read this file first.
+
+## Purpose
+
+This is the compiled knowledge layer. Sources live in `raw/`, project-specific
+summaries live in `wiki/projects/`, and the log records every meaningful
+operation.
+
+## How to use
+
+- Start with the relevant project page.
+- Expand to raw sources only when needed.
+- Keep project summaries short and current.
+- Write back after each meaningful session.
+
+## Projects
+
+| Project | Status | Updated | Wiki | Summary |
+|--------|--------|---------|------|---------|
+
+## References
+
+- [[wiki/log]]
+- [[wiki/projects/_template]]
+EOF
+}
+
+write_default_log() {
+  cat >"$LOG" <<'EOF'
+---
+type: wiki-log
+created: 2026-04-05
+---
+
+# Wiki Log
+
+Append-only. One entry per operation.
+
+Format:
+
+```text
+## [YYYY-MM-DD] agent | op | description
+```
+EOF
+}
+
+write_default_template() {
+  cat >"$TEMPLATE" <<'EOF'
+---
+type: wiki-page
+project: ProjectName
+status: active
+updated: 2026-04-05
+updated_by: agent
+repo: ""
+---
+
+# ProjectName — Overview
+
+## Summary
+
+One-paragraph summary.
+
+## Current status
+
+- What is happening now
+
+## Decisions
+
+- Important decisions with dates and sources
+
+## What failed
+
+- Failed attempts or dead ends
+
+## Next steps
+
+- [ ] Next action
+
+## Sources
+
+- [[path/to/source]]
+EOF
+}
+
+write_default_raw_readme() {
+  cat >"$RAW/README.md" <<'EOF'
+# Raw
+
+Immutable source drop zone.
+
+- Put source markdown, PDFs, images, transcripts, or exports here.
+- Do not edit files in place once they are considered source material.
+- Compile the useful parts into `wiki/`.
+EOF
+}
+
+ensure_files() {
+  [[ -f "$INDEX" ]] || write_default_index
+  [[ -f "$LOG" ]] || write_default_log
+  [[ -f "$TEMPLATE" ]] || write_default_template
+  [[ -f "$RAW/README.md" ]] || write_default_raw_readme
+}
+
+frontmatter_value() {
+  local file="$1"
+  local key="$2"
+  awk -v key="$key" '
+    BEGIN { in_frontmatter = 0 }
+    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+    in_frontmatter && $0 == "---" { exit }
+    in_frontmatter {
+      if ($0 ~ "^" key ":") {
+        sub("^" key ":[[:space:]]*", "", $0)
+        gsub(/^"/, "", $0)
+        gsub(/"$/, "", $0)
+        print
+        exit
+      }
+    }
+  ' "$file"
+}
+
+set_frontmatter_value() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  local tmp
+  tmp="$(mktemp)"
+  awk -v key="$key" -v value="$value" '
+    BEGIN { in_frontmatter = 0; replaced = 0 }
+    NR == 1 && $0 == "---" { in_frontmatter = 1; print; next }
+    in_frontmatter && $0 == "---" {
+      if (!replaced) print key ": " value
+      print
+      in_frontmatter = 0
+      next
+    }
+    in_frontmatter {
+      if ($0 ~ "^" key ":") {
+        print key ": " value
+        replaced = 1
+        next
+      }
+    }
+    { print }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+}
+
+extract_summary() {
+  local file="$1"
+  local summary
+  summary="$(
+    awk '
+      BEGIN { in_summary = 0; seen = 0 }
+      /^## Summary$/ { in_summary = 1; next }
+      in_summary && /^##[[:space:]]/ { exit }
+      in_summary {
+        if ($0 ~ /^[[:space:]]*$/) {
+          if (seen) exit
+          next
+        }
+        seen = 1
+        print
+      }
+    ' "$file" | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
+  )"
+  if [[ -z "$summary" ]]; then
+    summary="$(
+      awk '
+        BEGIN { in_body = 0; seen_heading = 0; seen_text = 0 }
+        NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+        in_frontmatter && $0 == "---" { in_frontmatter = 0; next }
+        in_frontmatter { next }
+        /^# / { seen_heading = 1; next }
+        seen_heading && /^##[[:space:]]/ { exit }
+        seen_heading {
+          if ($0 ~ /^[[:space:]]*$/) {
+            if (seen_text) exit
+            next
+          }
+          seen_text = 1
+          print
+        }
+      ' "$file" | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
+    )"
+  fi
+  if [[ -z "$summary" ]]; then
+    summary="See page"
+  fi
+  printf '%s' "$summary"
+}
+
+append_log() {
+  local agent="${1:?agent required}"
+  local op="${2:?op required}"
+  shift 2
+  local description="${*:-}"
+  ensure_dirs
+  ensure_files
+  {
+    echo
+    echo "## [$(today)] $agent | $op | $description"
+  } >>"$LOG"
+}
+
+create_project_page() {
+  local project="$1"
+  local file="$2"
+  local display_title="$project"
+  cat >"$file" <<EOF
+---
+type: wiki-page
+project: $project
+status: active
+updated: $(today)
+updated_by: agent
+repo: ""
+---
+
+# $display_title — Overview
+
+## Summary
+
+This page was created by \`wikictl ingest\`.
+
+## Current status
+
+- Needs synthesis.
+
+## Decisions
+
+- None yet.
+
+## What failed
+
+- None yet.
+
+## Next steps
+
+- [ ] Synthesize the ingested sources.
+
+## Sources
+
+EOF
+}
+
+ensure_project_page() {
+  local project="$1"
+  local file
+  file="$(project_file "$project")"
+  if [[ ! -f "$file" ]]; then
+    create_project_page "$project" "$file"
+    return
+  fi
+  set_frontmatter_value "$file" "type" "wiki-page"
+  set_frontmatter_value "$file" "project" "$project"
+  local status
+  status="$(frontmatter_value "$file" status || true)"
+  [[ -n "$status" ]] || status="active"
+  set_frontmatter_value "$file" "status" "$status"
+  set_frontmatter_value "$file" "updated" "$(today)"
+  set_frontmatter_value "$file" "updated_by" "${WIKI_AGENT:-agent}"
+  if [[ -z "$(frontmatter_value "$file" repo || true)" ]]; then
+    set_frontmatter_value "$file" "repo" '""'
+  fi
+}
+
+append_sources_to_project() {
+  local file="$1"
+  shift
+  local source
+  local added=0
+  for source in "$@"; do
+    local link
+    link="$(relativize "$source")"
+    if ! rg -Fq -- "- [[$link]]" "$file"; then
+      if ! rg -q '^## Sources$' "$file"; then
+        {
+          echo
+          echo "## Sources"
+          echo
+        } >>"$file"
+      fi
+      printf -- '- [[%s]]\n' "$link" >>"$file"
+      added=1
+    fi
+  done
+  return 0
+}
+
+rebuild_index() {
+  ensure_dirs
+  ensure_files
+  local tmp file project status updated summary page_link
+  tmp="$(mktemp)"
+  {
+    echo "---"
+    echo "type: wiki-index"
+    echo "updated: $(today)"
+    echo "maintained-by: [agent-wiki]"
+    echo "---"
+    echo
+    echo "# Wiki Index"
+    echo
+    echo "Read this file first."
+    echo
+    echo "## Purpose"
+    echo
+    echo "This is the compiled knowledge layer. Sources live in \`raw/\`, project-specific"
+    echo "summaries live in \`wiki/projects/\`, and the log records every meaningful"
+    echo "operation."
+    echo
+    echo "## How to use"
+    echo
+    echo "- Start with the relevant project page."
+    echo "- Expand to raw sources only when needed."
+    echo "- Keep project summaries short and current."
+    echo "- Write back after each meaningful session."
+    echo
+    echo "## Projects"
+    echo
+    echo "| Project | Status | Updated | Wiki | Summary |"
+    echo "|--------|--------|---------|------|---------|"
+
+    while IFS= read -r file; do
+      project="$(frontmatter_value "$file" project || true)"
+      status="$(frontmatter_value "$file" status || true)"
+      updated="$(frontmatter_value "$file" updated || true)"
+      [[ -n "$project" ]] || project="$(basename "$file" .md)"
+      [[ -n "$status" ]] || status="active"
+      [[ -n "$updated" ]] || updated="$(today)"
+      summary="$(extract_summary "$file")"
+      summary="${summary//|/\\|}"
+      page_link="[[wiki/projects/$(basename "$file" .md)]]"
+      printf '| %s | %s | %s | %s | %s |\n' "$project" "$status" "$updated" "$page_link" "$summary"
+    done < <(find "$WIKI/projects" -maxdepth 1 -name '*.md' ! -name '_template.md' | sort)
+
+    echo
+    echo "## References"
+    echo
+    echo "- [[wiki/log]]"
+    echo "- [[wiki/projects/_template]]"
+  } >"$tmp"
+  mv "$tmp" "$INDEX"
+}
+
+cmd_init() {
+  ensure_dirs
+  ensure_files
+  echo "initialized: $ROOT"
+}
+
+cmd_status() {
+  ensure_dirs
+  local project_count raw_count stale_count
+  project_count="$(find "$WIKI/projects" -maxdepth 1 -name '*.md' ! -name '_template.md' | wc -l | tr -d ' ')"
+  raw_count="$(find "$RAW" -type f | wc -l | tr -d ' ')"
+  stale_count="$(find "$WIKI/projects" -maxdepth 1 -name '*.md' ! -name '_template.md' -mtime +14 | wc -l | tr -d ' ')"
+  echo "root: $ROOT"
+  echo "wiki project pages: $project_count"
+  echo "raw files: $raw_count"
+  echo "stale project pages (>14d): $stale_count"
+  echo "index: $INDEX"
+  echo "log: $LOG"
+}
+
+cmd_lint() {
+  ensure_dirs
+  ensure_files
+  local missing=0
+  local path
+  for path in \
+    "$INDEX" \
+    "$LOG" \
+    "$TEMPLATE" \
+    "$ROOT/AGENTS.md" \
+    "$ROOT/CLAUDE.md" \
+    "$ROOT/.claude/settings.json" \
+    "$ROOT/docs/tool-configs.md"; do
+    if [[ ! -f "$path" ]]; then
+      echo "missing: $path" >&2
+      missing=1
+    fi
+  done
+
+  if ! rg -q '^## \[' "$LOG"; then
+    echo "missing: log entry format" >&2
+    missing=1
+  fi
+
+  local file stem field value
+  while IFS= read -r file; do
+    stem="$(basename "$file" .md)"
+    [[ "$stem" == "_template" ]] && continue
+    if ! rg -Fq "[[wiki/projects/$stem]]" "$INDEX"; then
+      echo "missing: index entry for $stem" >&2
+      missing=1
+    fi
+    for field in type project status updated updated_by; do
+      value="$(frontmatter_value "$file" "$field" || true)"
+      if [[ -z "$value" ]]; then
+        echo "missing: $field in $file" >&2
+        missing=1
+      fi
+    done
+  done < <(find "$WIKI/projects" -maxdepth 1 -name '*.md' | sort)
+
+  if [[ $missing -eq 0 ]]; then
+    echo "lint: ok"
+  else
+    exit 1
+  fi
+}
+
+cmd_heal() {
+  ensure_dirs
+  ensure_files
+  rebuild_index
+  append_log "system" "heal" "Rebuilt wiki index from project pages"
+  echo "healed: index rebuilt"
+}
+
+cmd_ingest() {
+  local project="${1:-}"
+  shift || true
+  if [[ -z "$project" || $# -lt 1 ]]; then
+    echo "usage: wikictl ingest <project> <source...>" >&2
+    exit 1
+  fi
+
+  ensure_dirs
+  ensure_files
+
+  local file source count=0
+  file="$(project_file "$project")"
+  ensure_project_page "$project"
+
+  for source in "$@"; do
+    if [[ ! -e "$source" ]]; then
+      echo "missing source: $source" >&2
+      exit 1
+    fi
+    count=$((count + 1))
+  done
+
+  append_sources_to_project "$file" "$@"
+  set_frontmatter_value "$file" "updated" "$(today)"
+  set_frontmatter_value "$file" "updated_by" "${WIKI_AGENT:-agent}"
+  set_frontmatter_value "$file" "type" "wiki-page"
+  set_frontmatter_value "$file" "project" "$project"
+  append_log "${WIKI_AGENT:-agent}" "ingest" "$project | $count source(s)"
+  rebuild_index
+  echo "ingested: $project"
+}
+
+cmd_query() {
+  ensure_dirs
+  ensure_files
+  local query="${*:-}"
+  if [[ -z "$query" ]]; then
+    echo "usage: wikictl query <terms...>" >&2
+    exit 1
+  fi
+
+  local tmp hits
+  tmp="$(mktemp)"
+  hits=0
+  {
+    echo "query: $query"
+    echo
+    echo "## wiki"
+    if rg -n -i -C 2 --glob '*.md' "$query" "$WIKI" >"$tmp"; then
+      cat "$tmp"
+      hits=1
+    else
+      echo "No wiki matches."
+    fi
+    echo
+    echo "## raw"
+    if rg -n -i -C 2 --glob '*.md' "$query" "$RAW" >"$tmp"; then
+      cat "$tmp"
+      hits=1
+    else
+      echo "No raw matches."
+    fi
+  }
+  rm -f "$tmp"
+
+  append_log "${WIKI_AGENT:-agent}" "query" "$query"
+
+  if [[ $hits -eq 0 ]]; then
+    echo "No results."
+  fi
+}
+
+cmd_sync() {
+  if [[ $# -gt 0 ]]; then
+    cmd_log "$@"
+  else
+    ensure_dirs
+    ensure_files
+  fi
+  cmd_lint
+  cmd_status
+}
+
+cmd_log() {
+  local agent="${1:?agent required}"
+  local op="${2:?op required}"
+  shift 2
+  local description="${*:-}"
+  ensure_dirs
+  ensure_files
+  append_log "$agent" "$op" "$description"
+  echo "logged: $agent | $op"
+}
+
+main() {
+  local cmd="${1:-}"
+  case "$cmd" in
+    init) shift; cmd_init "$@" ;;
+    status) shift; cmd_status "$@" ;;
+    lint) shift; cmd_lint "$@" ;;
+    heal) shift; cmd_heal "$@" ;;
+    ingest) shift; cmd_ingest "$@" ;;
+    query) shift; cmd_query "$@" ;;
+    sync) shift; cmd_sync "$@" ;;
+    log) shift; cmd_log "$@" ;;
+    ""|help|-h|--help) usage ;;
+    *)
+      echo "unknown command: $cmd" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

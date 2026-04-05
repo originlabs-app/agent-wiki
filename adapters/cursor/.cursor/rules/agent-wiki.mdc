@@ -1,0 +1,10 @@
+# Agent Wiki Cursor Rule
+
+Read `AGENTS.md` first.
+
+Use the same contract everywhere:
+
+- `raw/` is immutable.
+- `wiki/` is the compiled layer.
+- `wiki/log.md` is append-only.
+- `./cli/wikictl sync` is the end-of-session write-back.

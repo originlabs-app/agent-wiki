@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./cli/wikictl sync claude update 'Claude session write-back'"
+          }
+        ]
+      }
+    ]
+  }
+}
