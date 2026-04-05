@@ -788,7 +788,6 @@ cmd_lint() {
     "$SOURCE_TEMPLATE" \
     "$DECISION_TEMPLATE" \
     "$OUTPUTS/README.md" \
-    "$ROOT/SKILL.md" \
     "$ROOT/AGENTS.md" \
     "$ROOT/CLAUDE.md" \
     "$ROOT/README.md" \
