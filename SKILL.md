@@ -1,15 +1,16 @@
 ---
 name: agent-wiki
 description: >
-  Shared knowledge base for LLM Wiki projects. Three commands:
-  /agent-wiki start (begin session), /agent-wiki progress (mid-session),
+  Shared knowledge base for LLM Wiki projects. Four commands:
+  /agent-wiki start (begin session), /agent-wiki ingest (process a source),
+  /agent-wiki progress (mid-session checkpoint),
   /agent-wiki finish (end session). Each command observes, analyzes,
   suggests, and asks socratic questions. Uses wikictl CLI for wiki operations.
 ---
 
 # Agent Wiki
 
-Three commands. Each one: observe, analyze, suggest, ask.
+Four commands. Each one: observe, analyze, suggest, ask.
 
 ## /agent-wiki start
 
@@ -62,6 +63,54 @@ Based on tensions observed. Always hypothesize before asking:
 ### 5. Propose a session plan
 
 2-4 concrete steps based on the answers.
+
+---
+
+## /agent-wiki ingest
+
+The user gives you a source — a URL, pasted text, or a file path. You handle the full pipeline.
+
+### 1. Detect the input type
+
+- **URL** — fetch the content (use web extract, agent-browser, curl, or whatever tool is available)
+- **Pasted text** — the user pasted content directly in the chat
+- **File path** — a file already on disk (may or may not be in raw/)
+
+### 2. Save to raw/untracked/
+
+Save the source as a markdown file in raw/untracked/ with a dated name:
+`raw/untracked/YYYY-MM-DD-short-slug.md`
+
+If the source is already in raw/, skip this step.
+
+### 3. Read and discuss
+
+- Read the full source content
+- Summarize the key takeaways (3-5 bullet points)
+- Ask the user: "Which project does this relate to?" (or hypothesize: "This looks related to [project]. Correct?")
+- Ask: "Anything specific you want me to emphasize or ignore?"
+
+### 4. Compile into the wiki
+
+- Create or update the relevant project page in wiki/projects/
+- Create a source summary page in wiki/sources/YYYY-MM-DD-slug.md
+- Update wiki/index.md with the new source and any project changes
+- Add cross-links to existing wiki pages where relevant
+- Flag contradictions with existing wiki content
+
+A single source can touch 5-15 wiki pages. That's normal.
+
+### 5. Move and log
+
+- Run `wikictl ingest "<project>" raw/untracked/<source>` (moves to raw/ingested/)
+- Append to wiki/log.md
+- Confirm: "Ingested. Project page [X] updated. Source page created. [N] wiki pages touched."
+
+### 6. Suggest next actions
+
+- "There are 2 more files in raw/untracked/. Want me to ingest them too?"
+- "This source mentions [topic] which doesn't have a wiki page yet. Create one?"
+- "This contradicts what the wiki says about [X]. Want me to update it?"
 
 ---
 
