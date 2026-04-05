@@ -16,18 +16,13 @@ const CLI = path.join(ROOT, "cli", "wikictl");
 
 function parseCliContext(argv) {
   const cliContext = [];
-
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--instance" || arg === "--config") {
-      const value = argv[i + 1];
-      if (value) {
-        cliContext.push(arg, value);
-        i += 1;
-      }
+    if ((arg === "--instance" || arg === "--config") && argv[i + 1]) {
+      cliContext.push(arg, argv[i + 1]);
+      i += 1;
     }
   }
-
   return cliContext;
 }
 
@@ -43,11 +38,9 @@ function runCli(args) {
   if (result.error) {
     throw result.error;
   }
-
   if (result.status !== 0) {
     throw new Error((result.stderr || result.stdout || `wikictl ${args.join(" ")}`).trim());
   }
-
   return (result.stdout || "").trim();
 }
 
@@ -57,9 +50,7 @@ function parseKeyValue(text) {
     if (idx === -1) {
       return acc;
     }
-    const key = line.slice(0, idx);
-    const value = line.slice(idx + 1);
-    acc[key] = value;
+    acc[line.slice(0, idx)] = line.slice(idx + 1);
     return acc;
   }, {});
 }
@@ -75,11 +66,9 @@ function readFileSafe(filePath) {
 function listProjects() {
   const paths = resolvePaths();
   const dir = path.join(paths.wiki_root, "projects");
-
   if (!fs.existsSync(dir)) {
     return [];
   }
-
   return fs
     .readdirSync(dir)
     .filter((name) => name.endsWith(".md"))
@@ -91,15 +80,8 @@ function listProjects() {
 }
 
 const server = new Server(
-  {
-    name: "agent-wiki",
-    version: "0.1.0",
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  },
+  { name: "agent-wiki", version: "0.1.0" },
+  { capabilities: { tools: {} } },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -107,35 +89,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "status",
       description: "Return a short health summary of the active knowledge base.",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
+      inputSchema: { type: "object", properties: {} },
     },
     {
       name: "read_index",
       description: "Read wiki/index.md from the active instance.",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
+      inputSchema: { type: "object", properties: {} },
     },
     {
       name: "list_projects",
       description: "List project wiki pages from the active instance.",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
+      inputSchema: { type: "object", properties: {} },
     },
     {
       name: "read_project",
       description: "Read a project wiki page from the active instance.",
       inputSchema: {
         type: "object",
-        properties: {
-          name: { type: "string" },
-        },
+        properties: { name: { type: "string" } },
         required: ["name"],
       },
     },
@@ -159,11 +130,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: "object",
         properties: {
           project: { type: "string" },
-          sources: {
-            type: "array",
-            items: { type: "string" },
-            minItems: 1,
-          },
+          sources: { type: "array", items: { type: "string" }, minItems: 1 },
         },
         required: ["project", "sources"],
       },
@@ -173,19 +140,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       description: "Search the wiki and raw sources.",
       inputSchema: {
         type: "object",
-        properties: {
-          query: { type: "string" },
-        },
+        properties: { query: { type: "string" } },
         required: ["query"],
       },
     },
     {
       name: "heal",
       description: "Rebuild the wiki index from project pages.",
-      inputSchema: {
-        type: "object",
-        properties: {},
-      },
+      inputSchema: { type: "object", properties: {} },
     },
   ],
 }));
@@ -194,61 +156,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
 
   if (name === "status") {
-    return {
-      content: [{ type: "text", text: runCli(["status"]) }],
-    };
+    return { content: [{ type: "text", text: runCli(["status"]) }] };
   }
-
   if (name === "read_index") {
     const paths = resolvePaths();
-    return {
-      content: [{ type: "text", text: readFileSafe(paths.index) }],
-    };
+    return { content: [{ type: "text", text: readFileSafe(paths.index) }] };
   }
-
   if (name === "list_projects") {
-    return {
-      content: [{ type: "text", text: JSON.stringify(listProjects(), null, 2) }],
-    };
+    return { content: [{ type: "text", text: JSON.stringify(listProjects(), null, 2) }] };
   }
-
   if (name === "read_project") {
     const paths = resolvePaths();
     const fileName = `${String(args.name).replace(/[^A-Za-z0-9._-]/g, "")}.md`;
-    const filePath = path.join(paths.wiki_root, "projects", fileName);
     return {
-      content: [{ type: "text", text: readFileSafe(filePath) }],
+      content: [{ type: "text", text: readFileSafe(path.join(paths.wiki_root, "projects", fileName)) }],
     };
   }
-
   if (name === "append_log") {
-    const result = runCli(["log", args.agent, args.op, args.description]);
-    return {
-      content: [{ type: "text", text: result }],
-    };
+    return { content: [{ type: "text", text: runCli(["log", args.agent, args.op, args.description]) }] };
   }
-
   if (name === "ingest") {
     const sources = Array.isArray(args.sources) ? args.sources : [];
-    const result = runCli(["ingest", args.project, ...sources]);
-    return {
-      content: [{ type: "text", text: result }],
-    };
+    return { content: [{ type: "text", text: runCli(["ingest", args.project, ...sources]) }] };
   }
-
   if (name === "query") {
     const queryArgs = String(args.query).split(/\s+/).filter(Boolean);
-    const result = runCli(["query", ...queryArgs]);
-    return {
-      content: [{ type: "text", text: result }],
-    };
+    return { content: [{ type: "text", text: runCli(["query", ...queryArgs]) }] };
   }
-
   if (name === "heal") {
-    const result = runCli(["heal"]);
-    return {
-      content: [{ type: "text", text: result }],
-    };
+    return { content: [{ type: "text", text: runCli(["heal"]) }] };
   }
 
   throw new Error(`Unknown tool: ${name}`);

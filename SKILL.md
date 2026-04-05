@@ -1,75 +1,107 @@
 ---
 name: agent-wiki
 description: >
-  Shared knowledge base across agents and sessions. Two commands:
-  /agent-wiki start (brief before work), /agent-wiki finish (debrief after work).
-  Uses wikictl CLI for wiki operations.
+  Shared knowledge base workflow for LLM Wiki projects.
+  Use /agent-wiki start at the beginning of a session and
+  /agent-wiki finish at the end. Use wikictl or MCP for ingest,
+  query, lint, heal, and sync.
 ---
 
 # Agent Wiki
 
-A persistent, compounding knowledge base shared across agents and sessions.
+Use this skill when working in a project that follows the LLM Wiki pattern.
 
-## Commands
+## Modes
 
-### /agent-wiki start
+### Mode 1: In-Wiki
 
-Run at the beginning of every session.
+Use this when the current repo is `agent-wiki` itself.
 
-1. **Observe** (silent — don't ask the user yet)
-   - Run `wikictl status`.
-   - Read `wiki/index.md` and the project page for the current repo.
-   - Check `wiki/log.md` for recent activity.
-   - Check `raw/` for unprocessed sources.
+- Read and write the local `wiki/`, `raw/`, and `outputs/`.
+- Use local `wikictl` or local MCP tools when available.
 
-2. **Analyze** (silent)
-   - Compare repo state with wiki state. Look for tensions:
-     stale next-steps, contradictions between wiki and code, missing pages.
+### Mode 2: Second-Brain
 
-3. **Brief the user**
-   - Summarize what the wiki says about this project, last session, current priority.
+Use this when the current repo is some other working repo, but `agent-wiki`
+is configured as shared memory.
 
-4. **Ask 2–5 Socratic questions**
-   - Based on tensions you found. Hypothesize before asking.
-   - Bad: "What project?" — Good: "Looks like we're on X. Confirm?"
+- Work happens in the current repo.
+- Durable memory lives in the configured `agent-wiki` instance.
+- Read context from the wiki before work.
+- Write back durable knowledge after work.
 
-5. **Propose a session plan** — 2–4 concrete steps.
+## /agent-wiki start
 
----
+Run at the beginning of a meaningful session.
 
-### /agent-wiki finish
+### What to do
 
-Run at the end of every session.
+1. Observe silently:
+   - inspect the current repo or working directory
+   - determine whether you are in Mode 1 or Mode 2
+   - read `wiki/index.md` from the relevant wiki
+   - find the most relevant project page
+   - check `wiki/log.md` for recent work
+   - check whether new sources exist in `raw/untracked/`
 
-1. **Observe** (silent)
-   - What changed this session (git diff, files modified, decisions made, failures).
+2. Analyze silently:
+   - compare repo state and wiki state
+   - detect tensions, gaps, contradictions, stale next steps, or missing context
 
-2. **Ask 2–5 targeted questions**
-   - "The main outcome was X — anything else?"
-   - "Should I record the decision about Y?"
-   - "What's the next step for the next session?"
+3. Brief the user:
+   - summarize what the wiki says about the current project
+   - state the most likely current objective
 
-3. **Propose write-back** — show exactly what you'll write and where.
-   Ask: "OK to write these updates?"
+4. Ask 2 to 5 Socratic questions:
+   - base them on tensions or ambiguities you observed
+   - hypothesize before asking
+   - avoid generic questions you could answer from context
 
-4. **Execute**
-   - Update project page, create decision/source pages if needed.
-   - Run `wikictl sync <agent> <op> "<description>"`.
-   - Confirm: "Wiki updated."
+5. Propose a short session plan:
+   - 2 to 4 concrete steps
 
----
+## /agent-wiki finish
 
-## Detect
+Run at the end of a meaningful session.
 
-```bash
-command -v wikictl >/dev/null 2>&1 || [ -x ./cli/wikictl ] || [ -x ~/dev/internal/agent-wiki/cli/wikictl ]
-```
+### What to do
 
-If not available, continue normally. Don't fail. Don't ask to install.
+1. Observe silently:
+   - inspect what changed in the repo, files, or outputs
+   - determine whether write-back belongs in the local wiki or the second-brain wiki
+   - identify decisions, learnings, failures, and next steps
+
+2. Ask 2 to 5 targeted questions:
+   - focus only on what should become durable knowledge
+
+3. Propose write-back:
+   - say exactly what should be updated and where
+   - examples:
+     - `wiki/projects/...`
+     - `wiki/decisions/...`
+     - `wiki/sources/...`
+
+
+4. Ask for confirmation.
+
+5. Execute:
+   - update the wiki
+   - run `wikictl sync <agent> <op> "<description>"` or the MCP equivalent
+
+## Operations
+
+Use `wikictl` or MCP for these operations when available:
+
+- `ingest`
+- `query`
+- `lint`
+- `heal`
+- `sync`
 
 ## Rules
 
-1. `raw/` is immutable. Never edit source files.
-2. `wiki/` is the compiled layer. Keep it current.
-3. Write back after every meaningful session.
-4. Don't ask questions you can answer from context.
+1. Never edit `raw/`.
+2. Keep the wiki current.
+3. Prefer filing useful outputs back into the wiki.
+4. Do not leave durable knowledge only in chat.
+5. If the project is not configured for agent-wiki, continue normally without failing.

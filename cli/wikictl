@@ -2,16 +2,143 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WIKI="$ROOT/wiki"
-RAW="$ROOT/raw"
-LOG="$WIKI/log.md"
-INDEX="$WIKI/index.md"
-PROJECT_TEMPLATE="$WIKI/projects/_template.md"
-SOURCE_TEMPLATE="$WIKI/sources/_template.md"
-DECISION_TEMPLATE="$WIKI/decisions/_template.md"
+CONFIG_HOME="${HOME}/.agent-wiki/instances"
+INSTANCE_NAME=""
+CONFIG_PATH=""
+CONFIG_FILE=""
+INSTANCE_MODE="starter"
+WIKI=""
+RAW=""
+LOG=""
+INDEX=""
+PROJECT_TEMPLATE=""
+SOURCE_TEMPLATE=""
+DECISION_TEMPLATE=""
+OUTPUTS=""
+declare -a SOURCE_DIRS=()
+declare -a REMAINING_ARGS=()
 
 today() {
   date +%F
+}
+
+trim() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+unquote() {
+  local value="$1"
+  if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  printf '%s' "$value"
+}
+
+resolve_path_value() {
+  local value="$1"
+  local base_dir="${2:-$PWD}"
+  case "$value" in
+    "~") printf '%s\n' "$HOME" ;;
+    "~"/*) printf '%s\n' "$HOME/${value#~/}" ;;
+    /*) printf '%s\n' "$value" ;;
+    *) printf '%s\n' "$base_dir/$value" ;;
+  esac
+}
+
+absolutize_path() {
+  local value="$1"
+  case "$value" in
+    /*) printf '%s\n' "$value" ;;
+    ./*) printf '%s\n' "$PWD/${value#./}" ;;
+    *) printf '%s\n' "$PWD/$value" ;;
+  esac
+}
+
+set_storage_paths() {
+  WIKI="$1"
+  RAW="$2"
+  OUTPUTS="$(dirname "$WIKI")/outputs"
+  LOG="$WIKI/log.md"
+  INDEX="$WIKI/index.md"
+  PROJECT_TEMPLATE="$WIKI/projects/_template.md"
+  SOURCE_TEMPLATE="$WIKI/sources/_template.md"
+  DECISION_TEMPLATE="$WIKI/decisions/_template.md"
+}
+
+load_config_file() {
+  local file="$1"
+  local base_dir line key value entry
+  local -a raw_dirs=()
+  base_dir="$(cd "$(dirname "$file")" && pwd)"
+
+  SOURCE_DIRS=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%#*}"
+    line="$(trim "$line")"
+    [[ -z "$line" ]] && continue
+    [[ "$line" == *=* ]] || continue
+
+    key="$(trim "${line%%=*}")"
+    value="$(trim "${line#*=}")"
+    value="$(unquote "$value")"
+
+    case "$key" in
+      INSTANCE_NAME)
+        [[ -n "$INSTANCE_NAME" ]] || INSTANCE_NAME="$value"
+        ;;
+      WIKI_ROOT)
+        WIKI="$(resolve_path_value "$value" "$base_dir")"
+        ;;
+      RAW_ROOT)
+        RAW="$(resolve_path_value "$value" "$base_dir")"
+        ;;
+      SOURCE_DIRS)
+        IFS=':' read -r -a raw_dirs <<<"$value"
+        SOURCE_DIRS=()
+        for entry in "${raw_dirs[@]}"; do
+          entry="$(trim "$entry")"
+          [[ -n "$entry" ]] || continue
+          SOURCE_DIRS+=("$(resolve_path_value "$entry" "$base_dir")")
+        done
+        ;;
+    esac
+  done <"$file"
+
+  [[ -n "$WIKI" ]] || { echo "missing WIKI_ROOT in $file" >&2; exit 1; }
+  [[ -n "$RAW" ]] || { echo "missing RAW_ROOT in $file" >&2; exit 1; }
+}
+
+configure_runtime() {
+  local resolved_config=""
+  INSTANCE_MODE="starter"
+  SOURCE_DIRS=()
+  set_storage_paths "$ROOT/wiki" "$ROOT/raw"
+
+  if [[ -n "$CONFIG_PATH" ]]; then
+    resolved_config="$(resolve_path_value "$CONFIG_PATH" "$PWD")"
+  elif [[ -n "$INSTANCE_NAME" ]]; then
+    resolved_config="$CONFIG_HOME/$INSTANCE_NAME.conf"
+  fi
+
+  if [[ -n "$resolved_config" ]]; then
+    [[ -f "$resolved_config" ]] || {
+      echo "missing instance config: $resolved_config" >&2
+      exit 1
+    }
+    CONFIG_FILE="$resolved_config"
+    WIKI=""
+    RAW=""
+    load_config_file "$resolved_config"
+    set_storage_paths "$WIKI" "$RAW"
+    INSTANCE_MODE="instance"
+  else
+    CONFIG_FILE=""
+  fi
 }
 
 slugify() {
@@ -37,11 +164,29 @@ relativize() {
   esac
 }
 
+is_within_dir() {
+  local path="$1"
+  local dir="$2"
+  case "$path" in
+    "$dir"/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 usage() {
   cat <<'EOF'
 wikictl - local workflow helper
 
 Usage:
+  wikictl [--instance NAME | --config PATH] init
+  wikictl [--instance NAME | --config PATH] status
+  wikictl [--instance NAME | --config PATH] lint
+  wikictl [--instance NAME | --config PATH] heal
+  wikictl [--instance NAME | --config PATH] paths
+  wikictl [--instance NAME | --config PATH] ingest <project> <source...>
+  wikictl [--instance NAME | --config PATH] query <terms...>
+  wikictl [--instance NAME | --config PATH] sync [agent op description...]
+  wikictl [--instance NAME | --config PATH] log <agent> <op> <description...>
   wikictl init
   wikictl status
   wikictl lint
@@ -66,7 +211,13 @@ EOF
 }
 
 ensure_dirs() {
-  mkdir -p "$WIKI/projects" "$WIKI/sources" "$WIKI/decisions" "$RAW"
+  mkdir -p \
+    "$WIKI/projects" \
+    "$WIKI/sources" \
+    "$WIKI/decisions" \
+    "$RAW/untracked" \
+    "$RAW/ingested" \
+    "$OUTPUTS"
 }
 
 write_default_index() {
@@ -103,6 +254,8 @@ operation.
 
 - [[wiki/log]]
 - [[wiki/projects/_template]]
+- [[wiki/sources/_template]]
+- [[wiki/decisions/_template]]
 EOF
 }
 
@@ -227,9 +380,16 @@ write_default_raw_readme() {
 
 Immutable source drop zone.
 
-- Put source markdown, PDFs, images, transcripts, or exports here.
+- Put new source material in `raw/untracked/`.
+- Move processed source material to `raw/ingested/`.
 - Do not edit files in place once they are considered source material.
 - Compile the useful parts into `wiki/`.
+EOF
+}
+
+write_default_outputs_readme() {
+  cat >"$OUTPUTS/README.md" <<'EOF'
+Generated answers, reports, and research live here.
 EOF
 }
 
@@ -240,6 +400,7 @@ ensure_files() {
   [[ -f "$SOURCE_TEMPLATE" ]] || write_default_source_template
   [[ -f "$DECISION_TEMPLATE" ]] || write_default_decision_template
   [[ -f "$RAW/README.md" ]] || write_default_raw_readme
+  [[ -f "$OUTPUTS/README.md" ]] || write_default_outputs_readme
 }
 
 frontmatter_value() {
@@ -430,6 +591,52 @@ append_sources_to_project() {
   return 0
 }
 
+move_source_to_ingested() {
+  local source="$1"
+  local untracked_root="$RAW/untracked"
+  local ingested_root="$RAW/ingested"
+  local rel target_dir target_base target ext candidate n
+
+  if ! is_within_dir "$source" "$untracked_root"; then
+    printf '%s\n' "$source"
+    return 0
+  fi
+
+  rel="${source#"$untracked_root"/}"
+  target="$ingested_root/$rel"
+  target_dir="$(dirname "$target")"
+  mkdir -p "$target_dir"
+
+  if [[ ! -e "$target" ]]; then
+    mv "$source" "$target"
+    printf '%s\n' "$target"
+    return 0
+  fi
+
+  if cmp -s "$source" "$target"; then
+    rm -f "$source"
+    printf '%s\n' "$target"
+    return 0
+  fi
+
+  target_base="${target%.*}"
+  ext=""
+  if [[ "$target" == *.* ]]; then
+    ext=".${target##*.}"
+  fi
+
+  n=2
+  while true; do
+    candidate="${target_base}-${n}${ext}"
+    if [[ ! -e "$candidate" ]]; then
+      mv "$source" "$candidate"
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+    n=$((n + 1))
+  done
+}
+
 rebuild_index() {
   ensure_dirs
   ensure_files
@@ -521,10 +728,12 @@ cmd_lint() {
     "$PROJECT_TEMPLATE" \
     "$SOURCE_TEMPLATE" \
     "$DECISION_TEMPLATE" \
+    "$OUTPUTS/README.md" \
+    "$ROOT/SKILL.md" \
     "$ROOT/AGENTS.md" \
     "$ROOT/CLAUDE.md" \
-    "$ROOT/.claude/settings.json" \
-    "$ROOT/docs/tool-configs.md"; do
+    "$ROOT/README.md" \
+    "$ROOT/INSTALL.md"; do
     if [[ ! -f "$path" ]]; then
       echo "missing: $path" >&2
       missing=1
@@ -586,19 +795,23 @@ cmd_ingest() {
   ensure_dirs
   ensure_files
 
-  local file source count=0
+  local file source count=0 moved_source
+  local -a resolved_sources=()
   file="$(project_file "$project")"
   ensure_project_page "$project"
 
   for source in "$@"; do
+    source="$(absolutize_path "$source")"
     if [[ ! -e "$source" ]]; then
       echo "missing source: $source" >&2
       exit 1
     fi
     count=$((count + 1))
+    moved_source="$(move_source_to_ingested "$source")"
+    resolved_sources+=("$moved_source")
   done
 
-  append_sources_to_project "$file" "$@"
+  append_sources_to_project "$file" "${resolved_sources[@]}"
   set_frontmatter_value "$file" "updated" "$(today)"
   set_frontmatter_value "$file" "updated_by" "${WIKI_AGENT:-agent}"
   set_frontmatter_value "$file" "type" "wiki-page"
@@ -682,32 +895,69 @@ cmd_log() {
 }
 
 cmd_paths() {
+  local joined_source_dirs=""
+  if [[ ${#SOURCE_DIRS[@]} -gt 0 ]]; then
+    joined_source_dirs="$(IFS=:; printf '%s' "${SOURCE_DIRS[*]}")"
+  fi
   cat <<EOF
 root=$ROOT
+mode=$INSTANCE_MODE
+instance_name=$INSTANCE_NAME
+config_file=$CONFIG_FILE
 wiki_root=$WIKI
 raw_root=$RAW
 index=$INDEX
 log=$LOG
+source_dirs=$joined_source_dirs
 EOF
 }
 
-main() {
-  case "${1:-}" in
-    --help|-h) usage; exit 0 ;;
-  esac
+parse_global_options() {
+  REMAINING_ARGS=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --instance)
+        [[ $# -ge 2 ]] || { echo "--instance requires a name" >&2; exit 1; }
+        INSTANCE_NAME="$2"
+        shift 2
+        ;;
+      --config)
+        [[ $# -ge 2 ]] || { echo "--config requires a path" >&2; exit 1; }
+        CONFIG_PATH="$2"
+        shift 2
+        ;;
+      --help|-h)
+        usage
+        exit 0
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  REMAINING_ARGS=("$@")
+}
 
-  local cmd="${1:-}"
-  shift || true
+main() {
+  local cmd=""
+  parse_global_options "$@"
+  configure_runtime
+
+  cmd="${REMAINING_ARGS[0]:-}"
   case "$cmd" in
-    init) cmd_init "$@" ;;
-    status) cmd_status "$@" ;;
-    lint) cmd_lint "$@" ;;
-    heal) cmd_heal "$@" ;;
-    paths) cmd_paths "$@" ;;
-    ingest) cmd_ingest "$@" ;;
-    query) cmd_query "$@" ;;
-    sync) cmd_sync "$@" ;;
-    log) cmd_log "$@" ;;
+    init) cmd_init "${REMAINING_ARGS[@]:1}" ;;
+    status) cmd_status "${REMAINING_ARGS[@]:1}" ;;
+    lint) cmd_lint "${REMAINING_ARGS[@]:1}" ;;
+    heal) cmd_heal "${REMAINING_ARGS[@]:1}" ;;
+    paths) cmd_paths "${REMAINING_ARGS[@]:1}" ;;
+    ingest) cmd_ingest "${REMAINING_ARGS[@]:1}" ;;
+    query) cmd_query "${REMAINING_ARGS[@]:1}" ;;
+    sync) cmd_sync "${REMAINING_ARGS[@]:1}" ;;
+    log) cmd_log "${REMAINING_ARGS[@]:1}" ;;
     ""|help|-h|--help) usage ;;
     *)
       echo "unknown command: $cmd" >&2

@@ -1,17 +1,22 @@
-# MCP Layer
+# MCP
 
-This directory defines the transport boundary for agents that can talk MCP.
+This transport is optional.
 
-## Rule
+`agent-wiki` works with:
 
-Keep the MCP server thin. It should expose the same operations as `wikictl`:
+- `SKILL.md` as the user-facing workflow
+- `cli/wikictl` as the local engine
+- `mcp/server.mjs` as an optional tool transport for agents that speak MCP
 
-- read the wiki
-- search project pages
-- append log entries
-- lint the structure
-- sync compiled knowledge back to `wiki/`
+Run:
 
-The stable contract lives in `AGENTS.md` and `contract/manifest.yaml`.
-The CLI is the local executable reference implementation.
+```bash
+npm install
+npm run mcp
+```
 
+Or attach to an external instance:
+
+```bash
+npm run mcp -- --instance origin-labs
+```

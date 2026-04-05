@@ -1,46 +1,29 @@
-# Agent Wiki Contract
+# Agent Wiki Schema
 
-A Karpathy-style knowledge base for multi-agent workflows.
+This project follows the LLM Wiki pattern.
 
-## Data model
+## Core folders
 
-- `raw/` — immutable source drop zone. Never edit.
-- `wiki/` — compiled knowledge layer. Agents write here.
-- `wiki/log.md` — append-only operation log.
+- `raw/` contains immutable source material.
+- `wiki/` contains the compiled knowledge base maintained by the agent.
+- `outputs/` contains generated answers, reports, and other derived artifacts.
+
+## Rules
+
+1. Never edit files in `raw/`.
+2. Keep `wiki/index.md` current.
+3. Append meaningful operations to `wiki/log.md`.
+4. Prefer updating the wiki over leaving knowledge in chat history.
+5. Good outputs may be filed back into relevant wiki pages.
 
 ## Read order
 
 1. `wiki/index.md`
-2. `wiki/projects/<project>.md`
+2. relevant pages in `wiki/projects/`, `wiki/sources/`, `wiki/decisions/`
 3. `raw/` only when more detail is needed
 
-## Operations (wikictl)
+## Operations
 
-Three core operations from Karpathy's model:
-
-| Command | What it does |
-|---------|-------------|
-| `wikictl ingest <project> <source>` | Register + compile a source into wiki |
-| `wikictl query <terms>` | Search across wiki/ and raw/ |
-| `wikictl lint` | Check structure and alignment |
-
-Supporting commands:
-
-| Command | What it does |
-|---------|-------------|
-| `wikictl status` | Health summary |
-| `wikictl heal` | Rebuild wiki/index.md |
-| `wikictl sync <agent> <op> <desc>` | End-of-session write-back + log |
-| `wikictl log <agent> <op> <desc>` | Append to log |
-
-## Write-back rule
-
-Every session that produces durable knowledge must write it back to the wiki
-before ending — update project pages, create decision/source pages as needed,
-and run `wikictl sync`.
-
-## Rules
-
-1. `raw/` is immutable — never edit source files.
-2. Prefer wikictl for writes; direct edit is fallback only.
-3. Every meaningful operation gets one log entry.
+- `ingest`: integrate new sources from `raw/` into the wiki
+- `query`: answer questions against the wiki with citations
+- `lint`: detect contradictions, gaps, dead links, orphan pages, and stale content

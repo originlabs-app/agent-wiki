@@ -1,33 +1,59 @@
 # Install agent-wiki
 
-You are an LLM agent setting up agent-wiki.
+You are an LLM agent setting up `agent-wiki` for this repo.
 
-Rules: never overwrite existing configs. Install once, symlink for each agent.
+Rules:
 
-## Step 1: Detect agents
+- do not overwrite existing configs
+- append or merge only
+- install the shared skill once, then symlink it into each supported agent
+- treat this repo as the starting vault
 
-Check silently which agents are installed (~/.claude, ~/.codex, ~/.cursor,
-~/.hermes). Report what you found.
+## Step 1: Detect the environment
 
-## Step 2: Ask one question
+Check silently which agent environments exist, for example:
 
-> Do you have an existing folder or vault for the wiki?
-> If yes, give me the path. If no, I'll use the built-in wiki/ and raw/.
+- `~/.claude/`
+- `~/.codex/`
+- `~/.cursor/`
+- `~/.hermes/`
 
-If given a path, write a config to `~/.agent-wiki/instances/<name>.conf`
-with WIKI_ROOT and RAW_ROOT.
+Report what you found.
 
-## Step 3: Install
+## Step 2: Prepare the repo
+
+Run:
 
 ```bash
-chmod +x ./cli/wikictl && ./cli/wikictl init
+chmod +x ./cli/wikictl
+./cli/wikictl init
+```
+
+## Step 3: Install the shared skill
+
+Install one canonical copy:
+
+```bash
 mkdir -p ~/.agents/skills/agent-wiki
 cp SKILL.md ~/.agents/skills/agent-wiki/SKILL.md
 ```
 
-Symlink into each detected agent's skills directory:
-`ln -sfn ~/.agents/skills/agent-wiki ~/.claude/skills/agent-wiki` (etc.)
+Then symlink that shared skill into each detected agent's skill directory if the
+agent supports skills.
+
+Never overwrite an unrelated file.
 
 ## Step 4: Verify
 
-Run `./cli/wikictl status`. Tell the user what was installed.
+Run:
+
+```bash
+./cli/wikictl status
+./cli/wikictl lint
+```
+
+Finally, report:
+
+- what you installed
+- what you linked
+- which files you did not touch

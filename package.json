@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Karpathy-style multi-agent knowledge base starter pack",
+  "description": "Karpathy-style knowledge base starter with a shared skill, CLI, and optional MCP transport",
   "scripts": {
     "mcp": "node mcp/server.mjs"
   },
@@ -11,4 +11,3 @@
     "@modelcontextprotocol/sdk": "^1.0.0"
   }
 }
-
