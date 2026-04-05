@@ -7,4 +7,4 @@ npm install
 npm run mcp
 ```
 
-Exposes the same operations as `cli/wikictl` over the tool transport.
+Exposes the same operations as `tools/wikictl` over the tool transport.

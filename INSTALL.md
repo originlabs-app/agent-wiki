@@ -63,8 +63,8 @@ Based on the answer, you can suggest project pages to create or skip this if the
 Install one canonical copy:
 
 ```bash
-chmod +x ./cli/wikictl
-./cli/wikictl init
+chmod +x ./tools/wikictl
+./tools/wikictl init
 mkdir -p ~/.agents/skills/agent-wiki
 cp SKILL.md ~/.agents/skills/agent-wiki/SKILL.md
 ```
@@ -142,13 +142,13 @@ RAW_ROOT=[path]/raw
 EOF
 ```
 
-Test: `./cli/wikictl --instance [name] status`
+Test: `./tools/wikictl --instance [name] status`
 
 ## Step 6: Verify and report
 
 ```bash
-./cli/wikictl status
-./cli/wikictl lint
+./tools/wikictl status
+./tools/wikictl lint
 ```
 
 Report to the user:

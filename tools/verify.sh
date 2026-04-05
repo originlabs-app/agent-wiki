@@ -3,9 +3,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-bash -n "$ROOT/cli/wikictl"
-node --check "$ROOT/mcp/server.mjs"
-"$ROOT/cli/wikictl" lint
+bash -n "$ROOT/tools/wikictl"
+node --check "$ROOT/tools/mcp/server.mjs"
+"$ROOT/tools/wikictl" lint
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -18,10 +18,10 @@ This is a sample source used to verify ingest, query, and heal.
 EOF
 (
   cd "$TMPDIR/repo"
-  ./cli/wikictl ingest "Sample Project" raw/untracked/sample-source.md
-  ./cli/wikictl query sample
-  ./cli/wikictl heal
-  ./cli/wikictl lint
+  ./tools/wikictl ingest "Sample Project" raw/untracked/sample-source.md
+  ./tools/wikictl query sample
+  ./tools/wikictl heal
+  ./tools/wikictl lint
   grep -Fq '[[wiki/projects/sample-project]]' wiki/index.md
   test -f raw/ingested/sample-source.md
   test ! -f raw/untracked/sample-source.md
@@ -42,11 +42,11 @@ SOURCE_DIRS=$TMPDIR/external-vault/projects:$TMPDIR/external-vault/clients
 EOF
 (
   cd "$TMPDIR/repo"
-  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" init
-  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" ingest "Attached Vault" "$TMPDIR/external-vault/raw/untracked/external-source.md"
-  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" query karpathy
-  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" heal
-  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" lint
+  ./tools/wikictl --config "$TMPDIR/origin-labs.conf" init
+  ./tools/wikictl --config "$TMPDIR/origin-labs.conf" ingest "Attached Vault" "$TMPDIR/external-vault/raw/untracked/external-source.md"
+  ./tools/wikictl --config "$TMPDIR/origin-labs.conf" query karpathy
+  ./tools/wikictl --config "$TMPDIR/origin-labs.conf" heal
+  ./tools/wikictl --config "$TMPDIR/origin-labs.conf" lint
   grep -Fq '[[wiki/projects/attached-vault]]' "$TMPDIR/external-vault/wiki/index.md"
   test -f "$TMPDIR/external-vault/raw/ingested/external-source.md"
   test ! -f "$TMPDIR/external-vault/raw/untracked/external-source.md"

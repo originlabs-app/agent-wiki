@@ -163,7 +163,7 @@ If the session was trivial (typo fix, quick question): "Nothing substantial to r
 ## How to detect agent-wiki
 
 ```bash
-command -v wikictl >/dev/null 2>&1 || [ -x ./cli/wikictl ] || [ -x ~/dev/internal/agent-wiki/cli/wikictl ]
+command -v wikictl >/dev/null 2>&1 || [ -x ./tools/wikictl ] || [ -x ~/dev/internal/agent-wiki/tools/wikictl ]
 ```
 
 If not available, continue normally. Do not fail.

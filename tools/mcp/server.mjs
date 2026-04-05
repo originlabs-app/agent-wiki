@@ -11,8 +11,8 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT = path.resolve(__dirname, "..");
-const CLI = path.join(ROOT, "cli", "wikictl");
+const ROOT = path.resolve(__dirname, "../..");
+const CLI = path.join(ROOT, "tools", "wikictl");
 
 function parseCliContext(argv) {
   const cliContext = [];

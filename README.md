@@ -11,7 +11,7 @@ Clone it, open it in your agent, and let the agent set everything up.
 
 `INSTALL.md` is for setup.
 `SKILL.md` is for day-to-day use.
-`cli/wikictl` is the local engine. `mcp/` is optional.
+`tools/wikictl` is the local engine. `tools/mcp/` is optional.
 
 ## Two ways to use it
 
@@ -119,12 +119,12 @@ What that means:
 ## Under the hood
 
 ```bash
-./cli/wikictl status
-./cli/wikictl ingest "Project" raw/untracked/source.md
-./cli/wikictl query "search terms"
-./cli/wikictl lint
-./cli/wikictl heal
-./cli/wikictl sync claude done "updated project memory"
+./tools/wikictl status
+./tools/wikictl ingest "Project" raw/untracked/source.md
+./tools/wikictl query "search terms"
+./tools/wikictl lint
+./tools/wikictl heal
+./tools/wikictl sync claude done "updated project memory"
 ```
 
 ## Folder model
