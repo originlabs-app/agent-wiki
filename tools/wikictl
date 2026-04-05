@@ -15,11 +15,74 @@ PROJECT_TEMPLATE=""
 SOURCE_TEMPLATE=""
 DECISION_TEMPLATE=""
 OUTPUTS=""
-declare -a SOURCE_DIRS=()
 declare -a REMAINING_ARGS=()
 
 today() {
   date +%F
+}
+
+# Use rg if available, fall back to grep -r
+if command -v rg >/dev/null 2>&1; then
+  HAS_RG=1
+else
+  HAS_RG=0
+fi
+
+search_fixed_quiet() {
+  # Usage: search_fixed_quiet PATTERN FILE
+  if [[ $HAS_RG -eq 1 ]]; then
+    rg -Fq -- "$1" "$2"
+  else
+    grep -Fq -- "$1" "$2"
+  fi
+}
+
+search_quiet() {
+  # Usage: search_quiet PATTERN FILE
+  if [[ $HAS_RG -eq 1 ]]; then
+    rg -q "$1" "$2"
+  else
+    grep -q "$1" "$2"
+  fi
+}
+
+search_content() {
+  # Usage: search_content [rg_args...] DIR
+  # For query command - search with context
+  if [[ $HAS_RG -eq 1 ]]; then
+    rg "$@"
+  else
+    # Convert rg args to grep args
+    local -a grep_args=()
+    local dir=""
+    local -a patterns=()
+    local skip_next=0
+    for arg in "$@"; do
+      if [[ $skip_next -eq 1 ]]; then
+        skip_next=0
+        case "$prev_flag" in
+          -e) patterns+=("$arg") ;;
+          --glob) ;; # grep doesn't support glob the same way
+        esac
+        continue
+      fi
+      case "$arg" in
+        -n) grep_args+=("-n") ;;
+        -i) grep_args+=("-i") ;;
+        -C) grep_args+=("-C"); skip_next=1; prev_flag="-C" ;;
+        -F) grep_args+=("-F") ;;
+        -e) skip_next=1; prev_flag="-e" ;;
+        --glob) skip_next=1; prev_flag="--glob" ;;
+        [0-9]*) grep_args+=("$arg") ;; # context number
+        *) dir="$arg" ;;
+      esac
+    done
+    local pattern_args=()
+    for p in "${patterns[@]}"; do
+      pattern_args+=(-e "$p")
+    done
+    grep -r "${grep_args[@]}" "${pattern_args[@]}" --include='*.md' "$dir"
+  fi
 }
 
 trim() {
@@ -72,11 +135,9 @@ set_storage_paths() {
 
 load_config_file() {
   local file="$1"
-  local base_dir line key value entry
-  local -a raw_dirs=()
+  local base_dir line key value
   base_dir="$(cd "$(dirname "$file")" && pwd)"
 
-  SOURCE_DIRS=()
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%%#*}"
     line="$(trim "$line")"
@@ -97,15 +158,6 @@ load_config_file() {
       RAW_ROOT)
         RAW="$(resolve_path_value "$value" "$base_dir")"
         ;;
-      SOURCE_DIRS)
-        IFS=':' read -r -a raw_dirs <<<"$value"
-        SOURCE_DIRS=()
-        for entry in "${raw_dirs[@]}"; do
-          entry="$(trim "$entry")"
-          [[ -n "$entry" ]] || continue
-          SOURCE_DIRS+=("$(resolve_path_value "$entry" "$base_dir")")
-        done
-        ;;
     esac
   done <"$file"
 
@@ -116,7 +168,6 @@ load_config_file() {
 configure_runtime() {
   local resolved_config=""
   INSTANCE_MODE="starter"
-  SOURCE_DIRS=()
   set_storage_paths "$ROOT/wiki" "$ROOT/raw"
 
   if [[ -n "$CONFIG_PATH" ]]; then
@@ -221,10 +272,10 @@ ensure_dirs() {
 }
 
 write_default_index() {
-  cat >"$INDEX" <<'EOF'
+  cat >"$INDEX" <<EOF
 ---
 type: wiki-index
-updated: 2026-04-05
+updated: $(today)
 maintained-by: [agent-wiki]
 ---
 
@@ -260,10 +311,10 @@ EOF
 }
 
 write_default_log() {
-  cat >"$LOG" <<'EOF'
+  cat >"$LOG" <<EOF
 ---
 type: wiki-log
-created: 2026-04-05
+created: $(today)
 ---
 
 # Wiki Log
@@ -279,12 +330,12 @@ EOF
 }
 
 write_default_project_template() {
-  cat >"$PROJECT_TEMPLATE" <<'EOF'
+  cat >"$PROJECT_TEMPLATE" <<EOF
 ---
 type: wiki-page
 project: ProjectName
 status: active
-updated: 2026-04-05
+updated: $(today)
 updated_by: agent
 repo: ""
 ---
@@ -510,7 +561,13 @@ create_project_page() {
   local project="$1"
   local file="$2"
   local display_title="$project"
-  cat >"$file" <<EOF
+  if [[ -f "$PROJECT_TEMPLATE" ]]; then
+    sed -e "s/ProjectName/$project/g" \
+        -e "s/updated: .*/updated: $(today)/" \
+        -e "s/updated_by: .*/updated_by: agent/" \
+        "$PROJECT_TEMPLATE" >"$file"
+  else
+    cat >"$file" <<EOF
 ---
 type: wiki-page
 project: $project
@@ -545,6 +602,7 @@ This page was created by \`wikictl ingest\`.
 ## Sources
 
 EOF
+  fi
 }
 
 ensure_project_page() {
@@ -576,8 +634,8 @@ append_sources_to_project() {
   for source in "$@"; do
     local link
     link="$(relativize "$source")"
-    if ! rg -Fq -- "- [[$link]]" "$file"; then
-      if ! rg -q '^## Sources$' "$file"; then
+    if ! search_fixed_quiet "- [[$link]]" "$file"; then
+      if ! search_quiet '^## Sources$' "$file"; then
         {
           echo
           echo "## Sources"
@@ -740,14 +798,14 @@ cmd_lint() {
     fi
   done
 
-  if ! rg -q '^# Wiki Log$' "$LOG"; then
+  if ! search_quiet '^# Wiki Log$' "$LOG"; then
     echo "missing: wiki log header" >&2
     missing=1
   fi
 
-  if rg -q '^## \[' "$LOG"; then
+  if search_quiet '^## \[' "$LOG"; then
     :
-  elif ! rg -q '^Format:$' "$LOG"; then
+  elif ! search_quiet '^Format:$' "$LOG"; then
     echo "missing: log entry format" >&2
     missing=1
   fi
@@ -756,7 +814,7 @@ cmd_lint() {
   while IFS= read -r file; do
     stem="$(basename "$file" .md)"
     [[ "$stem" == "_template" ]] && continue
-    if ! rg -Fq "[[wiki/projects/$stem]]" "$INDEX"; then
+    if ! search_fixed_quiet "[[wiki/projects/$stem]]" "$INDEX"; then
       echo "missing: index entry for $stem" >&2
       missing=1
     fi
@@ -832,7 +890,7 @@ cmd_query() {
 
   local tmp hits term
   local -a patterns=()
-  local -a rg_args=()
+  local -a search_args=()
   tmp="$(mktemp)"
   hits=0
   patterns+=("$query")
@@ -840,15 +898,15 @@ cmd_query() {
     [[ -n "$term" ]] || continue
     patterns+=("$term")
   done
-  rg_args=(-n -i -C 2 -F --glob '*.md')
+  search_args=(-n -i -C 2 -F --glob '*.md')
   for term in "${patterns[@]}"; do
-    rg_args+=(-e "$term")
+    search_args+=(-e "$term")
   done
   {
     echo "query: $query"
     echo
     echo "## wiki"
-    if rg "${rg_args[@]}" "$WIKI" >"$tmp"; then
+    if search_content "${search_args[@]}" "$WIKI" >"$tmp"; then
       cat "$tmp"
       hits=1
     else
@@ -856,7 +914,7 @@ cmd_query() {
     fi
     echo
     echo "## raw"
-    if rg "${rg_args[@]}" "$RAW" >"$tmp"; then
+    if search_content "${search_args[@]}" "$RAW" >"$tmp"; then
       cat "$tmp"
       hits=1
     else
@@ -895,10 +953,6 @@ cmd_log() {
 }
 
 cmd_paths() {
-  local joined_source_dirs=""
-  if [[ ${#SOURCE_DIRS[@]} -gt 0 ]]; then
-    joined_source_dirs="$(IFS=:; printf '%s' "${SOURCE_DIRS[*]}")"
-  fi
   cat <<EOF
 root=$ROOT
 mode=$INSTANCE_MODE
@@ -908,7 +962,6 @@ wiki_root=$WIKI
 raw_root=$RAW
 index=$INDEX
 log=$LOG
-source_dirs=$joined_source_dirs
 EOF
 }
 

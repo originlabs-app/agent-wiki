@@ -22,7 +22,7 @@ Check which agent tools are installed:
 
 Report what you found.
 
-## Step 2: Ask 3-5 setup questions
+## Step 2: Ask 2 setup questions
 
 ### Question 1: Which agents?
 
@@ -31,34 +31,14 @@ Report what you found.
 ### Question 2: Where should the wiki live?
 
 "Two options:
-- **Here** — this repo becomes your wiki. Simplest way to start.
-- **Somewhere else** — you already have a folder, vault, or repo where you want the wiki to live. I'll point agent-wiki there.
+- **Here** — this repo becomes your wiki (In-Wiki mode). Simplest way to start.
+- **Somewhere else** — you already have a folder, vault, or repo where you want the wiki to live. I'll point agent-wiki there (Second-Brain mode).
 
 Where do you want it?"
 
 If they give a path, check if raw/, wiki/, and outputs/ exist there. If not, create them.
 
-### Question 3: How will you use it?
-
-"What's your main use case?
-- **Research** — accumulating knowledge from articles, papers, sources over time
-- **Software development** — tracking architecture decisions, project context across coding sessions
-- **Business / project management** — client notes, meeting transcripts, strategy docs
-- **Documentation** — maintaining a living knowledge base
-- **All of the above**
-
-This helps me set up the right starting structure."
-
-Based on the answer, personalize the `## What This Is` section in AGENTS.md. Replace the placeholder comment with a concrete description tailored to their use case. Keep it to 2-3 sentences.
-
-You can also suggest initial project pages to create, or skip this if they want to start empty.
-
-### Question 4: Mode?
-
-"Will you use this wiki:
-- **As your main workspace** — you open your agent directly in the wiki repo
-- **As a second brain** — you code in other repos and the wiki lives alongside as shared memory
-- **Both**"
+If they chose "here", personalize the `## What This Is` section in AGENTS.md based on the repo context. If they chose another path, note that the wiki will be used as a second brain across repos. Keep it to 2-3 sentences.
 
 ## Step 3: Install the skill
 

@@ -50,3 +50,4 @@ Use the agent-wiki skill:
 - `/agent-wiki ingest` — process a source (URL, text, or file → compiled into wiki)
 - `/agent-wiki progress` — mid-session checkpoint
 - `/agent-wiki finish` — end of session (writes back durable knowledge)
+- `/agent-wiki health` — deep audit of the wiki (contradictions, orphans, stale pages)

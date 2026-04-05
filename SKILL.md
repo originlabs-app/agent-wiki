@@ -278,7 +278,7 @@ Never silently fix — the whole point of health is surfacing issues for the hum
 ## How to detect agent-wiki
 
 ```bash
-command -v wikictl >/dev/null 2>&1 || [ -x ./tools/wikictl ] || [ -x ~/dev/internal/agent-wiki/tools/wikictl ]
+[ -x ./tools/wikictl ] || command -v wikictl >/dev/null 2>&1
 ```
 
 If not available, continue normally. Do not fail.
@@ -293,7 +293,6 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl lint` — detect orphans, dead links, stale pages
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
-- `wikictl list` — browse raw sources and wiki pages
 
 ## Rules
 

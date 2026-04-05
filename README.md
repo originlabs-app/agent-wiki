@@ -2,6 +2,10 @@
 
 A simple Karpathy-style starter for building a persistent wiki with an LLM.
 
+## Prerequisites
+
+Requires: bash, git. Optional: rg (ripgrep) for faster search.
+
 This repo is the starting vault.
 Clone it, open it in your agent, and let the agent set everything up.
 
@@ -13,37 +17,9 @@ Clone it, open it in your agent, and let the agent set everything up.
 `SKILL.md` is for day-to-day use.
 `tools/wikictl` is the local engine. `tools/mcp/` is optional.
 
-## Two ways to use it
-
-### Mode 1: In-Wiki
-
-The agent is opened inside this repo.
-
-In this mode:
-
-- this repo is the vault
-- the agent works directly in `raw/`, `wiki/`, and `outputs/`
-- this is the simplest way to start
-
-### Mode 2: Second-Brain
-
-The agent is opened in another repo, but `agent-wiki` is used as shared memory.
-
-In this mode:
-
-- code lives in the other repo
-- memory lives here
-- the agent reads this wiki before work
-- the agent writes durable knowledge back here after work
-
-So `agent-wiki` can be both:
-
-- the main workspace
-- or the second brain behind another workspace
-
 ## Two concrete examples
 
-### Example 1: Working inside the wiki
+### Example 1: Working inside the wiki (In-Wiki mode)
 
 You open Claude, Codex, or Hermès in this repo.
 
@@ -62,7 +38,7 @@ Then your flow is:
 /agent-wiki finish
 ```
 
-### Example 2: Coding in another repo, using agent-wiki as memory
+### Example 2: Coding in another repo, using agent-wiki as memory (Second-Brain mode)
 
 You open the agent in another repo, for example a client codebase.
 
@@ -80,41 +56,16 @@ Your flow is:
 In this mode, the wiki is not the main workspace.
 It is the second brain that keeps context, decisions, failures, and next steps across sessions.
 
-## Agent-First Setup
+## Getting started
 
 Open this repo in your agent and say:
 
 ```text
 Read INSTALL.md and set up agent-wiki for this repo.
-```
-
-Then say:
-
-```text
 Read SKILL.md and use agent-wiki for this session.
 ```
 
-This repo is the wiki. Start here.
-
-## How to use it
-
-Daily flow:
-
-```text
-/agent-wiki start
-...work normally...
-/agent-wiki progress
-...keep working...
-/agent-wiki finish
-```
-
-What that means:
-
-- `/agent-wiki start` reads the wiki, checks recent context, and asks a few good questions.
-- `/agent-wiki progress` mid-session checkpoint — checks drift, captures emerging decisions.
-- `/agent-wiki finish` proposes what should be written back, then updates the wiki.
-- In Mode 1, it works in the local wiki.
-- In Mode 2, it uses this repo as memory while work happens elsewhere.
+Daily flow: `/agent-wiki start` → work → `/agent-wiki progress` → work → `/agent-wiki finish`.
 
 ## Under the hood
 

@@ -10,3 +10,7 @@ node_modules/
 dist/
 coverage/
 
+# Sensitive source material
+raw/untracked/*
+!raw/untracked/README.md
+
