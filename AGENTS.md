@@ -14,6 +14,7 @@ A persistent knowledge base maintained by LLM agents. Knowledge compounds over t
   - `wiki/projects/` — one page per project
   - `wiki/sources/` — one page per ingested source
   - `wiki/decisions/` — architecture and business decisions
+  - `wiki/concepts/` — thematic pages aggregating knowledge across sources
   - `wiki/index.md` — catalog of everything, read this first
   - `wiki/log.md` — append-only operation log
 - `outputs/` — generated answers, reports, and research.
@@ -34,7 +35,7 @@ A persistent knowledge base maintained by LLM agents. Knowledge compounds over t
 
 1. `wiki/index.md`
 2. `wiki/log.md` — what happened recently
-3. Relevant pages in `wiki/projects/`, `wiki/sources/`, `wiki/decisions/`
+3. Relevant pages in `wiki/projects/`, `wiki/sources/`, `wiki/decisions/`, `wiki/concepts/`
 4. `raw/` only when more detail is needed
 
 ## Operations

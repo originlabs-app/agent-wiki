@@ -40,6 +40,8 @@ Mid-session checkpoint. Quick but thorough.
 
 **Knowledge gaps:** "Based on what we've been discussing, the wiki is missing [X]. Want me to flag it or create a stub page?"
 
+**Concept page:** "The topic [X] spans multiple sources now. Want me to create a concept page in wiki/concepts/ to tie them together?"
+
 ## 4. Ask 1-3 focused questions
 
 Shorter than start. Just enough to course-correct:

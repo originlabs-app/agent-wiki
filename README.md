@@ -120,6 +120,7 @@ agent-wiki/
 │   ├── projects/      ← one page per project
 │   ├── sources/       ← one page per ingested source
 │   └── decisions/     ← architecture / business decisions
+│   └── concepts/      ← thematic pages (topics spanning multiple sources)
 ├── outputs/           ← generated answers, reports, research
 ├── tools/
 │   ├── wikictl        ← CLI engine (bash)

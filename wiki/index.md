@@ -27,6 +27,21 @@ operation.
 |--------|--------|---------|------|---------|
 | Acme API | active | 2026-04-05 | [[wiki/projects/acme-api]] | REST API for Acme Corp's inventory management system. FastAPI + PostgreSQL. Handles product catalog, stock levels, and order fulfillment. |
 
+## Sources
+
+| Source | Date | Wiki | Summary |
+|--------|------|------|---------|
+
+## Decisions
+
+| Decision | Date | Wiki | Summary |
+|----------|------|------|---------|
+
+## Concepts
+
+| Concept | Updated | Wiki | Summary |
+|---------|---------|------|---------|
+
 ## References
 
 - [[wiki/log]]

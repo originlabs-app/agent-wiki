@@ -12,7 +12,7 @@ Deep audit of the wiki. Not a quick check — a thorough review. Run monthly or 
 
 ## 1. Scan the entire wiki (silent)
 
-- Read every page in wiki/projects/, wiki/sources/, wiki/decisions/
+- Read every page in wiki/projects/, wiki/sources/, wiki/decisions/, wiki/concepts/
 - Read wiki/index.md and wiki/log.md
 - Run `wikictl lint`
 - Check all [[links]] — do they point to real pages?

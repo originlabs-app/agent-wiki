@@ -49,6 +49,7 @@ Always hypothesize before asking. Confront the source with the wiki. The goal is
 
 - Create or update the relevant project page in wiki/projects/
 - Create a source summary page in wiki/sources/YYYY-MM-DD-slug.md
+- Create or update a concept page in wiki/concepts/ when a topic spans multiple sources (e.g., RAG, vector search)
 - Update wiki/index.md with the new source and any project changes
 - Add cross-links to existing wiki pages where relevant
 - Flag contradictions with existing wiki content

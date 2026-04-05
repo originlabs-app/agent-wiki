@@ -35,6 +35,8 @@ Show exactly what you'd write and where. The user approves before anything is wr
 
 **New source page:** "That API doc you pasted — I'd save it to raw/ and create wiki/sources/2026-04-05-paypal-api-docs.md."
 
+**New concept page:** "The topic of [X] keeps coming up across multiple sources. I'd create wiki/concepts/X.md to aggregate what we know."
+
 **Answer filing:** "The analysis you asked me to do about pricing — that's worth keeping. I'd save it to outputs/ and reference it from the project page."
 
 **Gap detection:** "Based on everything in the wiki, here are the 2-3 biggest gaps I see in the knowledge base: [X, Y, Z]. Want me to suggest sources to fill them?"

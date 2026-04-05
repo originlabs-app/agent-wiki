@@ -15,7 +15,8 @@ Begin a session. Observe, analyze, suggest, ask.
 - Detect: am I inside agent-wiki (Mode 1) or in another repo (Mode 2)?
 - Run `wikictl status`
 - Read `wiki/index.md`
-- Find the project page matching current work
+- Scan `wiki/projects/`, `wiki/sources/`, `wiki/decisions/`, `wiki/concepts/`
+- Find the project or concept page matching current work
 - Read `wiki/log.md` — what happened recently?
 - Check `raw/untracked/` — any new sources waiting?
 - Check recent git activity if in a code repo

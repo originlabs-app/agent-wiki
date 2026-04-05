@@ -3,7 +3,7 @@
 This repo is a Karpathy-style knowledge base. The AI writes the wiki. You read it.
 
 - raw/ — source material (immutable)
-- wiki/ — compiled knowledge (you maintain this)
+- wiki/ — compiled knowledge (projects, sources, decisions, concepts)
 - outputs/ — generated answers and reports
 - tools/wikictl — the CLI engine
 

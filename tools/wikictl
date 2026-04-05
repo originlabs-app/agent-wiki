@@ -266,6 +266,7 @@ ensure_dirs() {
     "$WIKI/projects" \
     "$WIKI/sources" \
     "$WIKI/decisions" \
+    "$WIKI/concepts" \
     "$RAW/untracked" \
     "$RAW/ingested" \
     "$OUTPUTS"
