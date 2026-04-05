@@ -40,6 +40,12 @@ Deep audit of the wiki. Not a quick check — a thorough review. Run monthly or 
 - "These sources in raw/ingested/ were ingested but the wiki pages are thin. Want me to re-compile with more detail?"
 - "The index is missing [N] pages. Want me to run heal?"
 
+**Fill gaps via web search:** "The wiki mentions [topic] but has no dedicated page and no source for it. Want me to search the web, find a good source, save it to raw/, and compile it into the wiki?"
+
+**Suggest new sources:** "Based on the gaps I found, here are 3 searches that would strengthen the wiki: [search 1], [search 2], [search 3]. Want me to run them?"
+
+This aligns with Karpathy's 'fills gaps via web search' in the Lint + Heal support layer.
+
 ## 4. Ask before fixing
 
 Show everything you'd change. Get approval. Then execute.
@@ -66,6 +72,7 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl lint` — detect orphans, dead links, stale pages
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
+- `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
 ## Rules
 

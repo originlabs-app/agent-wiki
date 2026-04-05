@@ -238,6 +238,7 @@ Usage:
   wikictl [--instance NAME | --config PATH] query <terms...>
   wikictl [--instance NAME | --config PATH] sync [agent op description...]
   wikictl [--instance NAME | --config PATH] log <agent> <op> <description...>
+  wikictl [--instance NAME | --config PATH] file-back <project> <title> [--type source|decision|concept]
   wikictl init
   wikictl status
   wikictl lint
@@ -247,17 +248,19 @@ Usage:
   wikictl query <terms...>
   wikictl sync [agent op description...]
   wikictl log <agent> <op> <description...>
+  wikictl file-back <project> <title> [--type source|decision|concept]
 
 Commands:
-  init     Ensure the base directory structure exists.
-  status   Show a short health summary.
-  lint     Check that the core contract files exist and line up.
-  heal     Rebuild the wiki index from project pages.
-  paths    Show the resolved storage paths and mode.
-  ingest   Register one or more source files against a project page.
-  query    Search across wiki/ and raw/ for terms.
-  sync     Optional end-of-session write-back plus lint/status.
-  log      Append one entry to wiki/log.md.
+  init       Ensure the base directory structure exists.
+  status     Show a short health summary.
+  lint       Check that the core contract files exist and line up.
+  heal       Rebuild the wiki index from project pages.
+  paths      Show the resolved storage paths and mode.
+  ingest     Register one or more source files against a project page.
+  query      Search across wiki/ and raw/ for terms.
+  sync       Optional end-of-session write-back plus lint/status.
+  log        Append one entry to wiki/log.md.
+  file-back  Create a wiki page from stdin/stub, update index + log.
 EOF
 }
 
@@ -952,6 +955,96 @@ cmd_log() {
   echo "logged: $agent | $op"
 }
 
+cmd_file_back() {
+  local project="" title="" page_type="source"
+  local -a positional=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --type)
+        [[ $# -ge 2 ]] || { echo "--type requires source|decision|concept" >&2; exit 1; }
+        page_type="$2"
+        shift 2
+        ;;
+      *)
+        positional+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  project="${positional[0]:-}"
+  title="${positional[1]:-}"
+
+  if [[ -z "$project" || -z "$title" ]]; then
+    echo "usage: wikictl file-back <project> <title> [--type source|decision|concept]" >&2
+    exit 1
+  fi
+
+  case "$page_type" in
+    source|decision|concept) ;;
+    *)
+      echo "invalid type: $page_type (must be source, decision, or concept)" >&2
+      exit 1
+      ;;
+  esac
+
+  ensure_dirs
+  ensure_files
+
+  local slug filename target_dir target_file wiki_type
+  slug="$(slugify "$title")"
+  filename="$(today)-${slug}.md"
+
+  case "$page_type" in
+    source)   target_dir="$WIKI/sources";   wiki_type="wiki-source" ;;
+    decision) target_dir="$WIKI/decisions";  wiki_type="wiki-decision" ;;
+    concept)  target_dir="$WIKI/concepts";   wiki_type="wiki-concept" ;;
+  esac
+
+  target_file="$target_dir/$filename"
+  mkdir -p "$target_dir"
+
+  # Read content from stdin if available, otherwise create a stub
+  local body=""
+  if [[ ! -t 0 ]]; then
+    body="$(cat)"
+  fi
+
+  {
+    echo "---"
+    echo "type: $wiki_type"
+    echo "title: \"$title\""
+    echo "date: $(today)"
+    echo "project: $project"
+    echo "status: active"
+    echo "---"
+    echo
+    echo "# $title"
+    echo
+    if [[ -n "$body" ]]; then
+      echo "$body"
+    else
+      echo "_Stub — fill in details._"
+    fi
+  } > "$target_file"
+
+  # Ensure the project page exists and link to it
+  ensure_project_page "$project"
+
+  # Add to wiki/index.md — append a reference line if not already present
+  local rel_path
+  rel_path="$(relativize "$target_file")"
+  if ! search_fixed_quiet "[[$rel_path]]" "$INDEX"; then
+    printf -- '\n- [[%s]]\n' "$rel_path" >> "$INDEX"
+  fi
+
+  # Append to log
+  append_log "${WIKI_AGENT:-agent}" "file-back" "$project | $page_type | $title"
+
+  echo "filed: $target_file"
+}
+
 cmd_paths() {
   cat <<EOF
 root=$ROOT
@@ -1011,6 +1104,7 @@ main() {
     query) cmd_query "${REMAINING_ARGS[@]:1}" ;;
     sync) cmd_sync "${REMAINING_ARGS[@]:1}" ;;
     log) cmd_log "${REMAINING_ARGS[@]:1}" ;;
+    file-back) cmd_file_back "${REMAINING_ARGS[@]:1}" ;;
     ""|help|-h|--help) usage ;;
     *)
       echo "unknown command: $cmd" >&2

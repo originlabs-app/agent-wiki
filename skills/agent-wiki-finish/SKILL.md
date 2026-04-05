@@ -64,7 +64,7 @@ Outputs go to outputs/ and can be filed back into wiki/ if they have lasting val
 ## 5. Execute (after user confirms)
 
 - Update project page
-- Create decision/source pages if needed
+- Create decision/source/concept pages if needed — use `wikictl file-back <project> "<title>" [--type source|decision|concept]` to create the page, update the index, and log in one step. Pipe content via stdin: `echo "content" | wikictl file-back myproject "My Title" --type decision`
 - Save outputs if needed
 - Run `wikictl sync <agent> <op> "<description>"`
 - Run `wikictl lint` — confirm wiki is healthy
@@ -92,6 +92,7 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl lint` — detect orphans, dead links, stale pages
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
+- `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
 ## Rules
 

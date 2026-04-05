@@ -36,7 +36,7 @@ Mid-session checkpoint. Quick but thorough.
 
 **Health check:** "Quick lint shows 2 orphan pages and 1 dead link in the wiki. Want me to fix them?"
 
-**Save an answer:** "That analysis I just gave you on [topic] — want me to save it to outputs/ so it's not lost in the chat?"
+**Save an answer:** "That analysis I just gave you on [topic] — want me to save it to outputs/ so it's not lost in the chat? I can also file it into the wiki with `wikictl file-back <project> \"<title>\"` so it's indexed and logged automatically."
 
 **Knowledge gaps:** "Based on what we've been discussing, the wiki is missing [X]. Want me to flag it or create a stub page?"
 
@@ -74,6 +74,7 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl lint` — detect orphans, dead links, stale pages
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
+- `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
 ## Rules
 
