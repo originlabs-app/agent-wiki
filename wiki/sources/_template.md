@@ -6,6 +6,7 @@ date: YYYY-MM-DD
 ingested-by: agent
 project: ""
 raw-path: ""
+confidence: medium
 ---
 
 # {Title}

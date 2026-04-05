@@ -4,6 +4,7 @@ concept: ConceptName
 status: active
 updated: YYYY-MM-DD
 updated_by: agent
+confidence: medium
 ---
 
 # ConceptName

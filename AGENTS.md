@@ -30,6 +30,11 @@ A persistent knowledge base maintained by LLM agents. Knowledge compounds over t
 6. Append meaningful operations to `wiki/log.md`.
 7. Prefer updating the wiki over leaving knowledge in chat history.
 8. Good outputs may be filed back into relevant wiki pages.
+9. Every wiki page should have a confidence indicator in its frontmatter: `confidence: high | medium | low`
+   - **high** = verified by human or multiple corroborating sources
+   - **medium** = single source, agent analysis
+   - **low** = hypothesis, unverified, or stale (>30 days without refresh)
+10. Use dual-link format on every cross-reference: `[[page-name|Display Name]](../path/to/page.md)`. This ensures links work in Obsidian (wikilinks), GitHub (markdown links), and plain text editors.
 
 ## Read order
 

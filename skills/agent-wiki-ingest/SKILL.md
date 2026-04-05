@@ -56,6 +56,8 @@ Always hypothesize before asking. Confront the source with the wiki. The goal is
 - Update wiki/index.md with the new source and any project changes
 - Add cross-links to existing wiki pages where relevant
 - Flag contradictions with existing wiki content
+- Assign a confidence score to each new page: high if corroborated by multiple sources, medium if single source, low if uncertain.
+- Use dual-link format for all cross-references: `[[page-name|Display Name]](relative/path.md)`. Works in Obsidian, GitHub, and plain text.
 
 A single source can touch 5-15 wiki pages. That's normal.
 

@@ -5,6 +5,7 @@ date: YYYY-MM-DD
 status: active | superseded | reversed
 decided-by: ""
 project: ""
+confidence: medium
 ---
 
 # {Decision Title}

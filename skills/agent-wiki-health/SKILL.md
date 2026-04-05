@@ -1,9 +1,9 @@
 ---
 name: agent-wiki-health
 description: >
-  Deep audit of the wiki. Use monthly or when things feel stale.
+  Deep audit of the wiki and repo-vs-wiki gap assessment. Use monthly or when things feel stale.
   Scans every page, finds contradictions, orphans, dead links,
-  unsourced claims, stale content, and suggests improvements.
+  unsourced claims, stale content, repo drift, and suggests improvements.
 ---
 
 # /agent-wiki-health
@@ -17,6 +17,10 @@ Deep audit of the wiki. Not a quick check — a thorough review. Run monthly or 
 - Run `wikictl lint`
 - Check all [[links]] — do they point to real pages?
 - Check all source citations — do the raw files exist?
+- If in a code repo (Mode 2 / second-brain), also scan the repo:
+  - Check `git log` for recent commits
+  - Check what files changed recently
+  - Compare repo state with wiki project page
 
 ## 2. Report issues by category
 
@@ -31,6 +35,12 @@ Deep audit of the wiki. Not a quick check — a thorough review. Run monthly or 
 **Stale pages:** "These pages haven't been updated in over 30 days: [list]. Want me to refresh them?"
 
 **Dead links:** "These links point to pages that don't exist: [list]. Should I create them or remove the links?"
+
+**Low confidence pages:** "These pages are rated low or haven't been refreshed in 30+ days: [list]. Want me to find corroborating sources to upgrade them?"
+
+**Repo vs wiki drift:** "The repo has had 14 commits since the wiki was last updated. Key changes: [list]. The wiki still says [old state]. Want me to refresh the project page?"
+
+**New repo files not in wiki:** "These files appeared in the repo but aren't reflected in the wiki: [list]. Should I ingest them?"
 
 **Error propagation:** "I found a claim in [page] that seems to have been copied from [other page] without verification. The original source says something different. Want me to correct both?"
 
