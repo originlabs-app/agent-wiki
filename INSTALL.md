@@ -2,6 +2,8 @@
 
 You are an LLM agent. A human wants to set up agent-wiki. Guide them through it conversationally.
 
+Source repo: https://github.com/originlabs-app/agent-wiki
+
 ## Rules
 
 - **NEVER overwrite or delete** any existing config file
@@ -22,7 +24,7 @@ Check which agent tools are installed:
 
 Report what you found.
 
-## Step 2: Ask 2 setup questions
+## Step 2: Ask 3 setup questions
 
 ### Question 1: Which agents?
 
@@ -30,32 +32,57 @@ Report what you found.
 
 ### Question 2: Where should the wiki live?
 
-"Two options:
-- **Here** — this repo becomes your wiki (In-Wiki mode). Simplest way to start.
-- **Somewhere else** — you already have a folder, vault, or repo where you want the wiki to live. I'll point agent-wiki there (Second-Brain mode).
+"Where do you want your wiki installed? Give me a path, or I'll use the default `~/agent-wiki/`."
 
-Where do you want it?"
+Examples:
+- `~/agent-wiki/` — default, standalone wiki
+- `~/Documents/my-vault/` — existing Obsidian vault
+- `~/dev/knowledge/` — custom location
+- `.` — right here in the current directory
 
-If they give a path, check if raw/, wiki/, and outputs/ exist there. If not, create them.
+### Question 3: What will you use it for?
 
-If they chose "here", personalize the `## What This Is` section in AGENTS.md based on the repo context. If they chose another path, note that the wiki will be used as a second brain across repos. Keep it to 2-3 sentences.
+"Quick question so I can set it up right — what's your main use case?
+- **Research** — articles, papers, long-term synthesis
+- **Software development** — architecture decisions, project context across sessions
+- **Business** — client notes, meeting transcripts, strategy
+- **General** — a bit of everything"
 
-## Step 3: Make wikictl available everywhere
+## Step 3: Clone the repo (if needed)
 
-The skill commands call `wikictl` behind the scenes. It needs to be accessible from any directory, not just this repo.
+If agent-wiki is not already cloned at the chosen location:
+
+```bash
+git clone https://github.com/originlabs-app/agent-wiki.git [chosen-path]
+cd [chosen-path]
+```
+
+If the user chose an existing directory (vault, repo), clone agent-wiki there or add the wiki layer:
+
+```bash
+cd [chosen-path]
+# If raw/, wiki/, outputs/ don't exist, create them:
+mkdir -p raw/untracked raw/ingested wiki/projects wiki/sources wiki/decisions outputs
+# Copy the essential files from the repo:
+curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/SKILL.md -o SKILL.md
+curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/AGENTS.md -o AGENTS.md
+mkdir -p tools && curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/tools/wikictl -o tools/wikictl && chmod +x tools/wikictl
+```
+
+## Step 4: Make wikictl available everywhere
 
 ```bash
 chmod +x ./tools/wikictl
 ./tools/wikictl init
 ```
 
-Add wikictl to PATH so it works from any repo (second-brain mode):
+Add wikictl to PATH so it works from any directory:
 
 ```bash
 ln -sfn "$(pwd)/tools/wikictl" /usr/local/bin/wikictl
 ```
 
-If /usr/local/bin/ requires sudo or doesn't exist, use ~/bin/ or ~/.local/bin/ instead:
+If /usr/local/bin/ requires sudo or doesn't exist:
 
 ```bash
 mkdir -p ~/.local/bin
@@ -64,7 +91,7 @@ ln -sfn "$(pwd)/tools/wikictl" ~/.local/bin/wikictl
 
 Verify: `wikictl status` should work from any directory.
 
-## Step 4: Install the skill
+## Step 5: Install the skill
 
 Install one canonical copy:
 
@@ -77,24 +104,23 @@ Symlink into each agent the user selected:
 
 ```bash
 # Claude Code
-mkdir -p ~/.claude/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.claude/skills/agent-wiki
+[ -d ~/.claude ] && mkdir -p ~/.claude/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.claude/skills/agent-wiki
 
 # Codex (already in ~/.agents/skills/)
 
 # Cursor
-mkdir -p ~/.cursor/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.cursor/skills/agent-wiki
+[ -d ~/.cursor ] && mkdir -p ~/.cursor/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.cursor/skills/agent-wiki
 
 # Hermes
-mkdir -p ~/.hermes/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.hermes/skills/agent-wiki
-# Also for Hermes profiles:
+[ -d ~/.hermes ] && mkdir -p ~/.hermes/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.hermes/skills/agent-wiki
 for d in ~/.hermes/profiles/*/; do
   [ -d "$d" ] && mkdir -p "${d}skills" && ln -sfn ~/.agents/skills/agent-wiki "${d}skills/agent-wiki"
 done
 ```
 
-## Step 5: Add wiki awareness to existing configs
+## Step 6: Add wiki awareness to existing configs
 
-For each selected agent, check if they have a global config and **append** a small section. Never replace the file.
+For each selected agent, **append** a small section to their global config. Never replace the file.
 
 ### Claude Code (~/.claude/CLAUDE.md)
 
@@ -109,56 +135,38 @@ Use /agent-wiki start at the beginning of a session and /agent-wiki finish at th
 Wiki location: [path to wiki]
 ```
 
-If the file doesn't exist, skip. The skill is enough.
-
 ### Codex (~/.codex/AGENTS.md or ~/.agents/AGENTS.md)
 
 If the file exists, append the same short section.
 
 ### Hermes (SOUL.md per profile)
 
-If the user has Hermes profiles, ask: "Do you want me to add a note about agent-wiki to your Hermes profiles?"
+Ask: "Do you want me to add a note about agent-wiki to your Hermes profiles?"
 
-If yes, find each profile's SOUL.md and append:
-
-```markdown
-
-## Agent Wiki
-
-agent-wiki is available as a shared knowledge base.
-The skill agent-wiki handles start/progress/finish workflows.
-Wiki location: [path to wiki]
-```
+If yes, find each profile's SOUL.md and append the same section.
 
 ### Cursor
 
-If ~/.cursor/rules/ exists, you can add a small rule file. Otherwise skip.
+If ~/.cursor/rules/ exists, add a small rule file. Otherwise skip.
 
-## Step 6: Configure instance (if wiki lives elsewhere)
+## Step 7: Personalize
 
-If the user chose a different location in Question 2:
+Based on Question 3 (use case), personalize the `## What This Is` section in AGENTS.md. Replace the placeholder with a concrete 2-3 sentence description.
 
-```bash
-mkdir -p ~/.agent-wiki/instances
-cat > ~/.agent-wiki/instances/[name].conf << EOF
-WIKI_ROOT=[path]/wiki
-RAW_ROOT=[path]/raw
-EOF
-```
+If they said "software development", suggest creating an initial project page:
+"Want me to create a wiki page for a current project? Give me the name."
 
-Test: `./tools/wikictl --instance [name] status`
-
-## Step 7: Verify and report
+## Step 8: Verify and report
 
 ```bash
-./tools/wikictl status
-./tools/wikictl lint
+wikictl status
+wikictl lint
 ```
 
-Report to the user:
+Report:
 
+- Where the wiki was installed
 - Which agents got the skill
-- Where the wiki lives
 - What was added to their configs (quote the exact lines)
 - What was NOT touched
-- How to start: "Open your agent and type /agent-wiki start"
+- How to start: "Type `/agent-wiki start` in any agent session"
