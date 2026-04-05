@@ -42,6 +42,7 @@ A persistent knowledge base maintained by LLM agents. Knowledge compounds over t
 
 - **ingest** — integrate new sources from `raw/` into the wiki. One source can touch 5-15 pages.
 - **query** — answer questions against the wiki with citations.
+- **compile** — batch-ingest all pending sources in `raw/untracked/` into the wiki.
 - **lint** — detect contradictions, gaps, dead links, orphan pages, and stale content.
 
 ## Workflow

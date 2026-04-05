@@ -239,6 +239,7 @@ Usage:
   wikictl [--instance NAME | --config PATH] sync [agent op description...]
   wikictl [--instance NAME | --config PATH] log <agent> <op> <description...>
   wikictl [--instance NAME | --config PATH] file-back <project> <title> [--type source|decision|concept]
+  wikictl [--instance NAME | --config PATH] compile [project]
   wikictl init
   wikictl status
   wikictl lint
@@ -249,6 +250,7 @@ Usage:
   wikictl sync [agent op description...]
   wikictl log <agent> <op> <description...>
   wikictl file-back <project> <title> [--type source|decision|concept]
+  wikictl compile [project]
 
 Commands:
   init       Ensure the base directory structure exists.
@@ -261,6 +263,7 @@ Commands:
   sync       Optional end-of-session write-back plus lint/status.
   log        Append one entry to wiki/log.md.
   file-back  Create a wiki page from stdin/stub, update index + log.
+  compile    Batch-ingest all pending sources in raw/untracked/.
 EOF
 }
 
@@ -1045,6 +1048,43 @@ cmd_file_back() {
   echo "filed: $target_file"
 }
 
+cmd_compile() {
+  local project="${1:-}"
+  ensure_dirs
+  ensure_files
+
+  local -a pending=()
+  local f
+  while IFS= read -r f; do
+    [[ "$(basename "$f")" == "README.md" ]] && continue
+    pending+=("$f")
+  done < <(find "$RAW/untracked" -maxdepth 1 -type f | sort)
+
+  if [[ ${#pending[@]} -eq 0 ]]; then
+    echo "compile: no pending sources in raw/untracked/"
+    return 0
+  fi
+
+  [[ -n "$project" ]] || project="general"
+
+  local count=0
+  local -a projects_touched=()
+  for f in "${pending[@]}"; do
+    cmd_ingest "$project" "$f"
+    count=$((count + 1))
+    local proj_slug
+    proj_slug="$(slugify "$project")"
+    local already=0
+    local p
+    for p in "${projects_touched[@]}"; do
+      [[ "$p" == "$proj_slug" ]] && { already=1; break; }
+    done
+    [[ $already -eq 1 ]] || projects_touched+=("$proj_slug")
+  done
+
+  echo "compiled: $count source(s). Project pages updated: ${projects_touched[*]}"
+}
+
 cmd_paths() {
   cat <<EOF
 root=$ROOT
@@ -1105,6 +1145,7 @@ main() {
     sync) cmd_sync "${REMAINING_ARGS[@]:1}" ;;
     log) cmd_log "${REMAINING_ARGS[@]:1}" ;;
     file-back) cmd_file_back "${REMAINING_ARGS[@]:1}" ;;
+    compile) cmd_compile "${REMAINING_ARGS[@]:1}" ;;
     ""|help|-h|--help) usage ;;
     *)
       echo "unknown command: $cmd" >&2

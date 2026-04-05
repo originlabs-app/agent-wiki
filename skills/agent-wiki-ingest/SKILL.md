@@ -4,6 +4,7 @@ description: >
   Process a source into the wiki. Use when the user gives you a URL,
   pasted text, or file path to ingest. Saves to raw/, compiles into
   wiki pages, cross-links, and flags contradictions.
+  Can enrich with parallel web research when sources mention new topics.
 ---
 
 # /agent-wiki-ingest
@@ -69,6 +70,24 @@ A single source can touch 5-15 wiki pages. That's normal.
 - "There are 2 more files in raw/untracked/. Want me to ingest them too?"
 - "This source mentions [topic] which doesn't have a wiki page yet. Create one?"
 - "This contradicts what the wiki says about [X]. Want me to update it?"
+
+### 7. Explore and enrich (optional)
+
+After ingesting the source, check if it mentions topics or concepts the wiki doesn't cover yet.
+
+Propose: "This source mentions [X, Y, Z] that aren't in the wiki yet. Want me to:
+- **Quick** — 1 web search per topic, ingest the best result
+- **Deep** — 3-5 parallel searches (using subagents if available), ingest all good results
+- **Skip** — just keep what we have"
+
+If the user says quick or deep:
+1. For each missing topic, search the web (use subagents for parallel execution if the platform supports it — Claude Code subagents, Codex parallel tasks, Hermes delegate_task)
+2. Save each found source to raw/untracked/
+3. Ingest each one (create source page, update project/concept pages, cross-link)
+4. Create concept pages for new topics in wiki/concepts/
+5. Report: "Enriched the wiki with [N] new sources across [M] topics. [list of new pages created]"
+
+The key insight: every ingest is an opportunity to compound. The agent doesn't just file one source — it uses that source as a springboard to fill gaps.
 
 ---
 

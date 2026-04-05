@@ -87,6 +87,7 @@ Finds contradictions, orphan pages, stale content, dead links, unsourced claims,
 | `./tools/wikictl lint` | Check structure — missing files, broken links |
 | `./tools/wikictl heal` | Rebuild wiki/index.md from project pages |
 | `./tools/wikictl sync <agent> <op> "<desc>"` | End-of-session write-back + lint + status |
+| `./tools/wikictl compile [project]` | Batch-ingest all pending sources in raw/untracked/ |
 | `./tools/wikictl log <agent> <op> "<desc>"` | Append entry to wiki/log.md |
 
 You don't usually call wikictl directly — the skill commands call it for you.
