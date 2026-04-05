@@ -344,6 +344,7 @@ project: ProjectName
 status: active
 updated: $(today)
 updated_by: agent
+confidence: medium
 repo: ""
 ---
 
@@ -384,6 +385,7 @@ title: ""
 date: YYYY-MM-DD
 project: ""
 status: active
+confidence: medium
 ---
 
 # Source Title
@@ -407,6 +409,7 @@ write_default_decision_template() {
 ---
 type: wiki-decision
 decision: ""
+confidence: medium
 date: YYYY-MM-DD
 status: active
 project: ""
@@ -1075,6 +1078,7 @@ cmd_file_back() {
     echo "date: $(today)"
     echo "project: $project"
     echo "status: active"
+    echo "confidence: medium"
     echo "---"
     echo
     echo "# $title"

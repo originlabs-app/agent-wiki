@@ -81,14 +81,17 @@ Finds contradictions, orphan pages, stale content, dead links, unsourced claims,
 
 | Command | What it does |
 |---------|-------------|
+| `./tools/wikictl init` | Create directory structure and default files |
 | `./tools/wikictl status` | Health summary — pages count, stale detection |
 | `./tools/wikictl ingest "<project>" <source>` | Register source, update project page, move to ingested/ |
 | `./tools/wikictl query "<terms>"` | Search across wiki/ and raw/ |
-| `./tools/wikictl lint` | Check structure — missing files, broken links |
-| `./tools/wikictl heal` | Rebuild wiki/index.md from project pages |
-| `./tools/wikictl sync <agent> <op> "<desc>"` | End-of-session write-back + lint + status |
 | `./tools/wikictl compile [project]` | Batch-ingest all pending sources in raw/untracked/ |
+| `./tools/wikictl file-back <project> <title> [--type]` | Save an answer/output back into the wiki |
+| `./tools/wikictl lint` | Check structure — missing files, broken links |
+| `./tools/wikictl heal` | Rebuild wiki/index.md (all 4 tables) |
+| `./tools/wikictl sync <agent> <op> "<desc>"` | End-of-session write-back + lint + status |
 | `./tools/wikictl log <agent> <op> "<desc>"` | Append entry to wiki/log.md |
+| `./tools/wikictl paths` | Show resolved storage paths |
 
 You don't usually call wikictl directly — the skill commands call it for you.
 

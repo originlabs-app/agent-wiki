@@ -8,7 +8,7 @@ description: >
 
 # /agent-wiki-health
 
-Deep audit of the wiki. Not a quick check — a thorough review. Run monthly or when things feel stale.
+Deep audit of the wiki. Not a quick check — a thorough review. Run weekly or when things feel stale.
 
 ## 1. Scan the entire wiki (silent)
 
