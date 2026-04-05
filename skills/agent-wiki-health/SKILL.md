@@ -1,7 +1,7 @@
 ---
 name: agent-wiki-health
 description: >
-  Deep audit of the wiki and repo-vs-wiki gap assessment. Use monthly or when things feel stale.
+  Deep audit of the wiki and repo-vs-wiki gap assessment. Use weekly or when things feel stale.
   Scans every page, finds contradictions, orphans, dead links,
   unsourced claims, stale content, repo drift, and suggests improvements.
 ---

@@ -55,7 +55,7 @@ That's it. The agent reads the wiki, briefs you, and you're working.
 
 The agent saves it to `raw/`, reads it, asks you socratic questions about what it means, compiles it into the wiki, and cross-links with existing pages.
 
-### Monthly health check
+### Weekly health check
 
 ```
 /agent-wiki-health      ← deep audit of the wiki
@@ -75,7 +75,7 @@ Finds contradictions, orphan pages, stale content, dead links, unsourced claims,
 | `/agent-wiki-ingest` | When you have a source | Saves to raw/, compiles into wiki, cross-links, flags contradictions |
 | `/agent-wiki-progress` | Mid-session | Quick checkpoint — scope drift detection, save suggestions, health check |
 | `/agent-wiki-finish` | End of session | Proposes write-back, asks what changed, updates wiki, logs |
-| `/agent-wiki-health` | Monthly | Deep audit — contradictions, orphans, staleness, gaps, error propagation |
+| `/agent-wiki-health` | Weekly | Deep audit — contradictions, orphans, staleness, confidence review, repo vs wiki drift, web search to fill gaps |
 
 ### CLI commands (the engine behind the skill)
 
