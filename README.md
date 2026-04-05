@@ -132,7 +132,6 @@ agent-wiki/
 │   ├── agent-wiki-progress/SKILL.md
 │   ├── agent-wiki-finish/SKILL.md
 │   └── agent-wiki-health/SKILL.md
-├── SKILL.md           ← combined reference (all 5 commands)
 ├── AGENTS.md          ← schema and rules
 ├── CLAUDE.md          ← Claude Code entry point
 ├── INSTALL.md         ← agent-driven setup

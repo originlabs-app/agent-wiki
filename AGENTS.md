@@ -34,7 +34,7 @@ A persistent knowledge base maintained by LLM agents. Knowledge compounds over t
    - **high** = verified by human or multiple corroborating sources
    - **medium** = single source, agent analysis
    - **low** = hypothesis, unverified, or stale (>30 days without refresh)
-10. Use dual-link format on every cross-reference: `[[page-name|Display Name]](../path/to/page.md)`. This ensures links work in Obsidian (wikilinks), GitHub (markdown links), and plain text editors.
+10. Use [[wikilinks]] for cross-references. They work in Obsidian and are readable in plain text.
 
 ## Read order
 

@@ -5,6 +5,7 @@ title: "API Requirements v2"
 date: 2026-03-10
 ingested-by: agent
 project: acme-api
+confidence: medium
 raw-path: ""
 ---
 

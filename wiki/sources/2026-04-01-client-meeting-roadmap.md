@@ -5,6 +5,7 @@ title: "Client meeting — Q2 roadmap review"
 date: 2026-04-01
 ingested-by: claude
 project: acme-api
+confidence: high
 raw-path: "raw/meetings/2026-04-01-acme-q2-roadmap.md"
 ---
 

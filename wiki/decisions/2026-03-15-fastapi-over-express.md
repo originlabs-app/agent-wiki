@@ -5,6 +5,7 @@ date: 2026-03-15
 status: active
 decided-by: tech-lead
 project: acme-api
+confidence: high
 ---
 
 # FastAPI over Express.js

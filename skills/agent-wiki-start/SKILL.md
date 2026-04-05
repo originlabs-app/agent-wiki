@@ -92,6 +92,7 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl lint` — detect orphans, dead links, stale pages
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
+- `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
 ## Rules
 

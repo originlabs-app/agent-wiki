@@ -57,7 +57,7 @@ Always hypothesize before asking. Confront the source with the wiki. The goal is
 - Add cross-links to existing wiki pages where relevant
 - Flag contradictions with existing wiki content
 - Assign a confidence score to each new page: high if corroborated by multiple sources, medium if single source, low if uncertain.
-- Use dual-link format for all cross-references: `[[page-name|Display Name]](relative/path.md)`. Works in Obsidian, GitHub, and plain text.
+- Use [[wikilinks]] for cross-references. They work in Obsidian and are readable in plain text.
 
 A single source can touch 5-15 wiki pages. That's normal.
 
@@ -111,6 +111,7 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl lint` — detect orphans, dead links, stale pages
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
+- `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
 ## Rules
 

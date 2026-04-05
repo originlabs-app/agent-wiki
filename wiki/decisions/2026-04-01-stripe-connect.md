@@ -5,6 +5,7 @@ date: 2026-04-01
 status: active
 decided-by: ""
 project: acme-api
+confidence: medium
 ---
 
 # Stripe Connect for Payouts

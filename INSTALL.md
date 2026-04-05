@@ -64,8 +64,12 @@ cd [chosen-path]
 # If raw/, wiki/, outputs/ don't exist, create them:
 mkdir -p raw/untracked raw/ingested wiki/projects wiki/sources wiki/decisions outputs
 # Copy the essential files from the repo:
-curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/SKILL.md -o SKILL.md
 curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/AGENTS.md -o AGENTS.md
+# Download skills from the repo
+for skill in agent-wiki-start agent-wiki-ingest agent-wiki-progress agent-wiki-finish agent-wiki-health; do
+  mkdir -p skills/$skill
+  curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/skills/$skill/SKILL.md -o skills/$skill/SKILL.md
+done
 mkdir -p tools && curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/tools/wikictl -o tools/wikictl && chmod +x tools/wikictl
 ```
 
@@ -187,7 +191,7 @@ Now that skills and wikictl are installed on the machine, remove the tool files 
 cd [wiki-path]
 rm -rf skills/
 rm -rf tools/
-rm -f SKILL.md INSTALL.md CLAUDE.md README.md LICENSE package.json .gitignore
+rm -f INSTALL.md CLAUDE.md README.md LICENSE package.json .gitignore
 rm -rf .git
 ```
 
