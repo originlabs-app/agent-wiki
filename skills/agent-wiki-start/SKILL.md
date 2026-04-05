@@ -57,7 +57,17 @@ Based on tensions observed. Always hypothesize before asking:
 - Bad: "What do you want to do?"
 - Good: "The wiki lists 3 next steps. The most recent commit touched the auth module. Are we continuing auth work, or switching to something else?"
 
-## 5. Propose a session plan
+### 5. Connect the user's intent to the wiki
+
+When the user says what they want to work on, cross-reference it with the wiki:
+
+- "You want to work on auth. The wiki has a decision page about JWT vs sessions from last week, and the project page mentions auth is 80% done. Here's what it says: [summary]."
+- "You're asking about pricing. The wiki has a source page from the client meeting where pricing was discussed. Want me to pull it up?"
+- "That topic isn't in the wiki yet. Want me to create a concept page as we work on it?"
+
+The goal: everything the user says gets matched against what the wiki knows. The wiki is the memory — use it.
+
+### 6. Propose a short session plan
 
 2-4 concrete steps based on the answers.
 
@@ -93,6 +103,19 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl heal` — rebuild index from project pages
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
 - `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
+
+## Wiki as memory — always search it
+
+Whenever the user asks a question, mentions a topic, or needs context — check the wiki FIRST before answering from scratch. The wiki is the shared memory. Use it.
+
+- User asks "what did we decide about auth?" → search wiki/decisions/ before answering
+- User mentions "the client meeting last week" → check wiki/sources/ for the transcript
+- User says "I think we tried this before" → check project page's "What failed" section
+- User asks about a concept → check wiki/concepts/
+
+Run `wikictl query "<terms>"` to search. Then read the relevant pages. Cite them in your answer: "According to [[wiki/decisions/2026-03-15-fastapi-over-express]], we chose FastAPI because..."
+
+If the wiki doesn't have it, say so: "The wiki doesn't have anything on this yet. Want me to create a page?"
 
 ## Rules
 

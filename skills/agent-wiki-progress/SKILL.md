@@ -76,6 +76,16 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
 - `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
+## Wiki as memory — always search it
+
+Whenever the user asks a question or mentions a topic mid-session — check the wiki FIRST. Don't answer from scratch if the wiki already has the answer.
+
+- User: "what was the pricing we discussed?" → `wikictl query "pricing"` → read the source page → answer with citation
+- User: "we tried something like this before" → check "What failed" in the project page
+- User: "what does the wiki say about X?" → search and summarize
+
+If the wiki has it, cite it. If it doesn't, say so and offer to create a page.
+
 ## Rules
 
 1. Always observe before asking. Never ask what you can infer.
