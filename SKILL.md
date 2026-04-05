@@ -1,16 +1,17 @@
 ---
 name: agent-wiki
 description: >
-  Shared knowledge base for LLM Wiki projects. Four commands:
+  Shared knowledge base for LLM Wiki projects. Five commands:
   /agent-wiki start (begin session), /agent-wiki ingest (process a source),
   /agent-wiki progress (mid-session checkpoint),
-  /agent-wiki finish (end session). Each command observes, analyzes,
-  suggests, and asks socratic questions. Uses wikictl CLI for wiki operations.
+  /agent-wiki finish (end session), /agent-wiki health (deep audit).
+  Each command observes, analyzes, suggests, and asks socratic questions.
+  Uses wikictl CLI for wiki operations.
 ---
 
 # Agent Wiki
 
-Four commands. Each one: observe, analyze, suggest, ask.
+Five commands. Each one: observe, analyze, suggest, ask.
 
 ## /agent-wiki start
 
@@ -229,6 +230,48 @@ Show exactly what you'd write and where. The user approves before anything is wr
 - Report: "Wiki updated. Next session will have this context."
 
 If the session was trivial (typo fix, quick question): "Nothing substantial to record. Skipping write-back."
+
+---
+
+## /agent-wiki health
+
+Deep audit of the wiki. Not a quick check — a thorough review. Run monthly or when things feel stale.
+
+### 1. Scan the entire wiki (silent)
+
+- Read every page in wiki/projects/, wiki/sources/, wiki/decisions/
+- Read wiki/index.md and wiki/log.md
+- Run `wikictl lint`
+- Check all [[links]] — do they point to real pages?
+- Check all source citations — do the raw files exist?
+
+### 2. Report issues by category
+
+**Contradictions:** "Page A says [X] but page B says [Y]. Which is correct?"
+
+**Unsourced claims:** "The project page says [claim] but I can't find a source for it in raw/. Is this verified?"
+
+**Missing pages:** "The term [concept] is mentioned in 4 pages but has no dedicated page. Should I create one?"
+
+**Orphan pages:** "These pages have no inbound links: [list]. Are they still relevant or should they be archived?"
+
+**Stale pages:** "These pages haven't been updated in over 30 days: [list]. Want me to refresh them?"
+
+**Dead links:** "These links point to pages that don't exist: [list]. Should I create them or remove the links?"
+
+**Error propagation:** "I found a claim in [page] that seems to have been copied from [other page] without verification. The original source says something different. Want me to correct both?"
+
+### 3. Suggest improvements
+
+- "Here are 3-5 pages that would fill the biggest gaps in the wiki."
+- "These sources in raw/ingested/ were ingested but the wiki pages are thin. Want me to re-compile with more detail?"
+- "The index is missing [N] pages. Want me to run heal?"
+
+### 4. Ask before fixing
+
+Show everything you'd change. Get approval. Then execute.
+
+Never silently fix — the whole point of health is surfacing issues for the human to validate.
 
 ---
 
