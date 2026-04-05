@@ -1,120 +1,113 @@
-# Install agent-wiki on this machine
+# Install agent-wiki
 
-You are an LLM agent. A human has asked you to set up agent-wiki on their machine. Follow these instructions carefully. **Do not overwrite any existing config files.** Append or merge only.
+You are an LLM agent. A human has asked you to set up agent-wiki on their machine. Follow these instructions carefully.
 
-## Step 1: Check prerequisites
+**Rules:**
+- **NEVER overwrite or modify any existing config file** (CLAUDE.md, AGENTS.md, SOUL.md, etc.)
+- **Install the skill ONCE, symlink for each agent**
+- **If unsure, ask the user before modifying anything**
 
-- Verify `./cli/wikictl` exists and is executable. If not: `chmod +x ./cli/wikictl`
-- Run `./cli/wikictl init` to ensure `wiki/` and `raw/` directories exist.
+## Step 1: Ensure the repo is ready
 
-## Step 2: Configure your tool
-
-Find which tool you are running in and add the agent-wiki protocol to its config.
-
-### If Claude Code
-
-Config file: `~/.claude/CLAUDE.md` (global) or `CLAUDE.md` in the project root.
-
-**If the file already exists:** append the section below at the end. Do not replace the file.
-**If the file does not exist:** create it with only the section below.
-
-```markdown
-## Agent Wiki — Shared Knowledge Base
-
-If `./cli/wikictl` exists in the current repo or `~/dev/internal/agent-wiki/cli/wikictl` is available:
-
-### Before starting work
-1. Run `wikictl status` to check if a wiki is configured.
-2. If configured, read the wiki index.
-3. Find and read the project page matching your current work.
-
-### After completing meaningful work
-4. Update the relevant project page with what changed.
-5. If a significant decision was made, create a decision page in wiki/decisions/.
-6. Run `wikictl sync claude <op> "<description>"`.
-
-### If wikictl is not available
-Continue normally. Do not fail.
+```bash
+chmod +x ./cli/wikictl
+./cli/wikictl init
 ```
 
-### If Codex
+## Step 2: Install the skill
 
-Config file: `~/.codex/AGENTS.md` or `AGENTS.md` in the project root.
+The skill lives in ONE place. Each agent gets a symlink. This is the same pattern used by agent-browser.
 
-Same logic: append if exists, create if not. Use the same section as above but replace `claude` with `codex` in the sync command.
+### Install source skill
 
-### If Cursor
+```bash
+mkdir -p ~/.agents/skills/agent-wiki
+cp SKILL.md ~/.agents/skills/agent-wiki/SKILL.md
+```
 
-Config file: `~/.cursor/rules/agent-wiki.mdc` or `AGENTS.md` in the project root.
+### Symlink for each detected agent
 
-Same logic: append if exists, create if not. Replace `claude` with `cursor` in the sync command.
+Only create symlinks for agents that are actually installed on the machine.
 
-### If Hermes
+```bash
+# Claude Code (if ~/.claude/ exists)
+[ -d ~/.claude ] && mkdir -p ~/.claude/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.claude/skills/agent-wiki
 
-Config file: `~/.hermes/skills/agent-wiki/SKILL.md`
+# Codex (already in ~/.agents/skills/, nothing to do)
 
-**If the file already exists:** read it, check if agent-wiki protocol is already there. If not, append.
-**If the file does not exist:** create it with this content:
+# Cursor (if ~/.cursor/ exists)
+[ -d ~/.cursor ] && mkdir -p ~/.cursor/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.cursor/skills/agent-wiki
 
-```markdown
----
-name: agent-wiki
-description: Read and write to a shared Karpathy-style wiki. Use wikictl for ingest, query, heal, sync.
-tags: [wiki, knowledge-base, memory, multi-agent]
----
+# Hermes (if ~/.hermes/ exists)
+[ -d ~/.hermes ] && mkdir -p ~/.hermes/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.hermes/skills/agent-wiki
+```
 
-# Agent Wiki
+### Hermes profiles
 
-## When to activate
-- Start of any session where project context would help.
-- End of any session where knowledge was produced.
-- When the user says "ingest", "query wiki", "lint wiki", "sync".
+If Hermes has multiple profiles (e.g., `~/.hermes/profiles/marc/`), symlink into each:
 
-## Before starting work
-1. Run wikictl status to check if a wiki is configured.
-2. If configured, read the wiki index.
-3. Find and read the project page matching the current work.
-
-## After completing meaningful work
-4. Update the relevant project page with what changed.
-5. If a significant decision was made, create a decision page.
-6. Run wikictl sync hermes <op> "<description>".
-
-## If wikictl is not available
-Continue normally. Do not fail.
+```bash
+for profile_dir in ~/.hermes/profiles/*/; do
+  [ -d "$profile_dir" ] && mkdir -p "${profile_dir}skills" && ln -sfn ~/.agents/skills/agent-wiki "${profile_dir}skills/agent-wiki"
+done
 ```
 
 ## Step 3: Configure an instance (optional)
 
-If the user has an existing vault or folder they want agent-wiki to use:
+If the user has an existing vault or folder they want agent-wiki to point to:
 
-1. Create `~/.agent-wiki/instances/` if it doesn't exist.
-2. Ask the user: "Where is your wiki folder?" (e.g., `~/Documents/my-vault/wiki`)
-3. Ask the user: "Where should raw sources go?" (e.g., `~/Documents/my-vault/raw`)
-4. Create a config file:
+1. Ask: "What name for this instance?" (e.g., `my-vault`)
+2. Ask: "Where is your wiki folder?" (e.g., `~/Documents/my-vault/wiki`)
+3. Ask: "Where should raw sources go?" (e.g., `~/Documents/my-vault/raw`)
+4. Create the config:
 
-```
-# ~/.agent-wiki/instances/<name>.conf
+```bash
+mkdir -p ~/.agent-wiki/instances
+cat > ~/.agent-wiki/instances/<name>.conf << EOF
 WIKI_ROOT=/path/to/wiki
 RAW_ROOT=/path/to/raw
+EOF
 ```
 
 5. Test: `./cli/wikictl --instance <name> status`
 
-If the user doesn't have an existing vault, skip this step. The wiki in the repo itself works as default.
+If the user doesn't have an existing vault, skip this. The wiki in the repo works as default.
 
 ## Step 4: Verify
 
-Run:
-- `./cli/wikictl status` — should show wiki project pages count
-- `./cli/wikictl lint` — should say "lint: ok"
-- `./cli/wikictl query test` — should not error
+```bash
+./cli/wikictl status
+./cli/wikictl lint
+```
 
-Report the results to the user.
+Check that the symlinks resolve:
+```bash
+ls -la ~/.claude/skills/agent-wiki 2>/dev/null
+ls -la ~/.agents/skills/agent-wiki 2>/dev/null
+ls -la ~/.hermes/skills/agent-wiki 2>/dev/null
+```
 
-## Rules
+Report results to the user.
 
-- **NEVER overwrite an existing config file.** Append or merge only.
-- **NEVER delete user content.**
-- **If unsure, ask the user before modifying any file outside the repo.**
-- If a section "Agent Wiki" already exists in a config file, skip — it's already installed.
+## Step 5: Clean up old installs (if needed)
+
+If previous versions of agent-wiki were installed differently (bootstrap-local.sh, direct file copies, etc.), clean them up:
+
+- Remove old symlinks to `adapters/` directory (no longer exists)
+- Remove duplicate skills (e.g., `~/.hermes/skills/llm-wiki-maintainer/` if it was an old version)
+- **Do NOT remove user-created files** — ask before deleting anything you didn't create
+
+## Summary
+
+```
+~/.agents/skills/agent-wiki/SKILL.md   ← source (one copy)
+~/.claude/skills/agent-wiki/           ← symlink → ~/.agents/skills/agent-wiki
+~/.cursor/skills/agent-wiki/           ← symlink → ~/.agents/skills/agent-wiki
+~/.hermes/skills/agent-wiki/           ← symlink → ~/.agents/skills/agent-wiki
+~/.agent-wiki/instances/<name>.conf    ← instance config (optional)
+```
+
+What was NOT modified:
+- No global configs (CLAUDE.md, AGENTS.md, SOUL.md)
+- No existing skills overwritten
+- No files outside of skills directories
