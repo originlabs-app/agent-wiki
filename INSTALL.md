@@ -40,13 +40,35 @@ If they give a path, check if raw/, wiki/, and outputs/ exist there. If not, cre
 
 If they chose "here", personalize the `## What This Is` section in AGENTS.md based on the repo context. If they chose another path, note that the wiki will be used as a second brain across repos. Keep it to 2-3 sentences.
 
-## Step 3: Install the skill
+## Step 3: Make wikictl available everywhere
 
-Install one canonical copy:
+The skill commands call `wikictl` behind the scenes. It needs to be accessible from any directory, not just this repo.
 
 ```bash
 chmod +x ./tools/wikictl
 ./tools/wikictl init
+```
+
+Add wikictl to PATH so it works from any repo (second-brain mode):
+
+```bash
+ln -sfn "$(pwd)/tools/wikictl" /usr/local/bin/wikictl
+```
+
+If /usr/local/bin/ requires sudo or doesn't exist, use ~/bin/ or ~/.local/bin/ instead:
+
+```bash
+mkdir -p ~/.local/bin
+ln -sfn "$(pwd)/tools/wikictl" ~/.local/bin/wikictl
+```
+
+Verify: `wikictl status` should work from any directory.
+
+## Step 4: Install the skill
+
+Install one canonical copy:
+
+```bash
 mkdir -p ~/.agents/skills/agent-wiki
 cp SKILL.md ~/.agents/skills/agent-wiki/SKILL.md
 ```
@@ -70,7 +92,7 @@ for d in ~/.hermes/profiles/*/; do
 done
 ```
 
-## Step 4: Add wiki awareness to existing configs
+## Step 5: Add wiki awareness to existing configs
 
 For each selected agent, check if they have a global config and **append** a small section. Never replace the file.
 
@@ -112,7 +134,7 @@ Wiki location: [path to wiki]
 
 If ~/.cursor/rules/ exists, you can add a small rule file. Otherwise skip.
 
-## Step 5: Configure instance (if wiki lives elsewhere)
+## Step 6: Configure instance (if wiki lives elsewhere)
 
 If the user chose a different location in Question 2:
 
@@ -126,7 +148,7 @@ EOF
 
 Test: `./tools/wikictl --instance [name] status`
 
-## Step 6: Verify and report
+## Step 7: Verify and report
 
 ```bash
 ./tools/wikictl status
