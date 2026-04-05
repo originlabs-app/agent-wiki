@@ -24,7 +24,7 @@ Read INSTALL.md and set up agent-wiki.
 Then say:
 
 ```
-/agent-wiki start
+/agent-wiki-start
 ```
 
 That's it. The agent reads the wiki, briefs you, and you're working.
@@ -36,21 +36,21 @@ That's it. The agent reads the wiki, briefs you, and you're working.
 ### The daily workflow
 
 ```
-/agent-wiki start       ← begin your session
+/agent-wiki-start       ← begin your session
        ↓
     work normally
        ↓
-/agent-wiki progress    ← optional mid-session checkpoint
+/agent-wiki-progress    ← optional mid-session checkpoint
        ↓
     keep working
        ↓
-/agent-wiki finish      ← end your session, write back to wiki
+/agent-wiki-finish      ← end your session, write back to wiki
 ```
 
 ### When you have a source to add
 
 ```
-/agent-wiki ingest      ← paste a URL, text, or file path
+/agent-wiki-ingest      ← paste a URL, text, or file path
 ```
 
 The agent saves it to `raw/`, reads it, asks you socratic questions about what it means, compiles it into the wiki, and cross-links with existing pages.
@@ -58,7 +58,7 @@ The agent saves it to `raw/`, reads it, asks you socratic questions about what i
 ### Monthly health check
 
 ```
-/agent-wiki health      ← deep audit of the wiki
+/agent-wiki-health      ← deep audit of the wiki
 ```
 
 Finds contradictions, orphan pages, stale content, dead links, unsourced claims, and suggests new pages to fill gaps.
@@ -71,11 +71,11 @@ Finds contradictions, orphan pages, stale content, dead links, unsourced claims,
 
 | Command | When | What it does |
 |---------|------|-------------|
-| `/agent-wiki start` | Beginning of session | Reads wiki, detects tensions, briefs you, asks socratic questions, proposes a plan |
-| `/agent-wiki ingest` | When you have a source | Saves to raw/, compiles into wiki, cross-links, flags contradictions |
-| `/agent-wiki progress` | Mid-session | Quick checkpoint — scope drift detection, save suggestions, health check |
-| `/agent-wiki finish` | End of session | Proposes write-back, asks what changed, updates wiki, logs |
-| `/agent-wiki health` | Monthly | Deep audit — contradictions, orphans, staleness, gaps, error propagation |
+| `/agent-wiki-start` | Beginning of session | Reads wiki, detects tensions, briefs you, asks socratic questions, proposes a plan |
+| `/agent-wiki-ingest` | When you have a source | Saves to raw/, compiles into wiki, cross-links, flags contradictions |
+| `/agent-wiki-progress` | Mid-session | Quick checkpoint — scope drift detection, save suggestions, health check |
+| `/agent-wiki-finish` | End of session | Proposes write-back, asks what changed, updates wiki, logs |
+| `/agent-wiki-health` | Monthly | Deep audit — contradictions, orphans, staleness, gaps, error propagation |
 
 ### CLI commands (the engine behind the skill)
 
@@ -124,7 +124,13 @@ agent-wiki/
 ├── tools/
 │   ├── wikictl        ← CLI engine (bash)
 │   └── mcp/           ← optional MCP transport (Node.js)
-├── SKILL.md           ← the 5 commands (agents read this)
+├── skills/            ← one directory per command (agents read these)
+│   ├── agent-wiki-start/SKILL.md
+│   ├── agent-wiki-ingest/SKILL.md
+│   ├── agent-wiki-progress/SKILL.md
+│   ├── agent-wiki-finish/SKILL.md
+│   └── agent-wiki-health/SKILL.md
+├── SKILL.md           ← combined reference (all 5 commands)
 ├── AGENTS.md          ← schema and rules
 ├── CLAUDE.md          ← Claude Code entry point
 ├── INSTALL.md         ← agent-driven setup
@@ -135,10 +141,10 @@ agent-wiki/
 
 | File | Who reads it | Purpose |
 |------|-------------|---------|
-| `SKILL.md` | Your agent | Session workflow — start, ingest, progress, finish, health |
+| `skills/agent-wiki-*/SKILL.md` | Your agent | One skill per command — start, ingest, progress, finish, health |
 | `AGENTS.md` | Your agent | Schema — folder structure, rules, operations |
 | `INSTALL.md` | Your agent | First-time setup — detects tools, asks questions, installs skill |
-| `CLAUDE.md` | Claude Code | Entry point that points to SKILL.md and AGENTS.md |
+| `CLAUDE.md` | Claude Code | Entry point that points to skills/ and AGENTS.md |
 | `wiki/index.md` | Everyone | Table of contents for the compiled wiki |
 
 ---

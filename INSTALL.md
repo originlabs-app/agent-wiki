@@ -92,31 +92,53 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
 
 Verify: `wikictl status` should work from any directory.
 
-## Step 5: Install the skill
+## Step 5: Install the skills
 
-Install one canonical copy:
+Install all 5 skill directories:
 
 ```bash
-mkdir -p ~/.agents/skills/agent-wiki
-cp SKILL.md ~/.agents/skills/agent-wiki/SKILL.md
+mkdir -p ~/.agents/skills
+cp -r skills/agent-wiki-start ~/.agents/skills/
+cp -r skills/agent-wiki-ingest ~/.agents/skills/
+cp -r skills/agent-wiki-progress ~/.agents/skills/
+cp -r skills/agent-wiki-finish ~/.agents/skills/
+cp -r skills/agent-wiki-health ~/.agents/skills/
 ```
 
 Symlink into each agent the user selected:
 
 ```bash
 # Claude Code
-[ -d ~/.claude ] && mkdir -p ~/.claude/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.claude/skills/agent-wiki
+if [ -d ~/.claude ]; then
+  mkdir -p ~/.claude/skills
+  for skill in agent-wiki-start agent-wiki-ingest agent-wiki-progress agent-wiki-finish agent-wiki-health; do
+    ln -sfn ~/.agents/skills/$skill ~/.claude/skills/$skill
+  done
+fi
 
 # Codex (already in ~/.agents/skills/)
 
 # Cursor
-[ -d ~/.cursor ] && mkdir -p ~/.cursor/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.cursor/skills/agent-wiki
+if [ -d ~/.cursor ]; then
+  mkdir -p ~/.cursor/skills
+  for skill in agent-wiki-start agent-wiki-ingest agent-wiki-progress agent-wiki-finish agent-wiki-health; do
+    ln -sfn ~/.agents/skills/$skill ~/.cursor/skills/$skill
+  done
+fi
 
 # Hermes
-[ -d ~/.hermes ] && mkdir -p ~/.hermes/skills && ln -sfn ~/.agents/skills/agent-wiki ~/.hermes/skills/agent-wiki
-for d in ~/.hermes/profiles/*/; do
-  [ -d "$d" ] && mkdir -p "${d}skills" && ln -sfn ~/.agents/skills/agent-wiki "${d}skills/agent-wiki"
-done
+if [ -d ~/.hermes ]; then
+  mkdir -p ~/.hermes/skills
+  for skill in agent-wiki-start agent-wiki-ingest agent-wiki-progress agent-wiki-finish agent-wiki-health; do
+    ln -sfn ~/.agents/skills/$skill ~/.hermes/skills/$skill
+  done
+  for d in ~/.hermes/profiles/*/; do
+    [ -d "$d" ] && mkdir -p "${d}skills"
+    for skill in agent-wiki-start agent-wiki-ingest agent-wiki-progress agent-wiki-finish agent-wiki-health; do
+      ln -sfn ~/.agents/skills/$skill "${d}skills/$skill"
+    done
+  done
+fi
 ```
 
 ## Step 6: Add wiki awareness to existing configs
@@ -132,7 +154,7 @@ If the file exists, append:
 ## Agent Wiki
 
 agent-wiki is available as a shared knowledge base.
-Use /agent-wiki start at the beginning of a session and /agent-wiki finish at the end.
+Use /agent-wiki-start at the beginning of a session and /agent-wiki-finish at the end.
 Wiki location: [path to wiki]
 ```
 
@@ -170,4 +192,4 @@ Report:
 - Which agents got the skill
 - What was added to their configs (quote the exact lines)
 - What was NOT touched
-- How to start: "Type `/agent-wiki start` in any agent session"
+- How to start: "Type `/agent-wiki-start` in any agent session"

@@ -1,3 +1,5 @@
+<!-- This is the combined reference. Individual commands are in skills/agent-wiki-*/SKILL.md -->
+
 ---
 name: agent-wiki
 description: >

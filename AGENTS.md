@@ -45,9 +45,9 @@ A persistent knowledge base maintained by LLM agents. Knowledge compounds over t
 
 ## Workflow
 
-Use the agent-wiki skill:
-- `/agent-wiki start` — begin a session (reads wiki, asks socratic questions, proposes a plan)
-- `/agent-wiki ingest` — process a source (URL, text, or file → compiled into wiki)
-- `/agent-wiki progress` — mid-session checkpoint
-- `/agent-wiki finish` — end of session (writes back durable knowledge)
-- `/agent-wiki health` — deep audit of the wiki (contradictions, orphans, stale pages)
+Use the agent-wiki skills (each is a separate slash command):
+- `/agent-wiki-start` — begin a session (reads wiki, asks socratic questions, proposes a plan)
+- `/agent-wiki-ingest` — process a source (URL, text, or file → compiled into wiki)
+- `/agent-wiki-progress` — mid-session checkpoint
+- `/agent-wiki-finish` — end of session (writes back durable knowledge)
+- `/agent-wiki-health` — deep audit of the wiki (contradictions, orphans, stale pages)
