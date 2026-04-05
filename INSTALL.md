@@ -76,17 +76,18 @@ chmod +x ./tools/wikictl
 ./tools/wikictl init
 ```
 
-Add wikictl to PATH so it works from any directory:
-
-```bash
-ln -sfn "$(pwd)/tools/wikictl" /usr/local/bin/wikictl
-```
-
-If /usr/local/bin/ requires sudo or doesn't exist:
+Add wikictl to PATH so it works from any directory. Use a wrapper script (not a symlink — symlinks break the path resolution):
 
 ```bash
 mkdir -p ~/.local/bin
-ln -sfn "$(pwd)/tools/wikictl" ~/.local/bin/wikictl
+printf '#!/usr/bin/env bash\nexec "%s/tools/wikictl" "$@"\n' "$(pwd)" > ~/.local/bin/wikictl
+chmod +x ~/.local/bin/wikictl
+```
+
+If ~/.local/bin is not in PATH:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
 ```
 
 Verify: `wikictl status` should work from any directory.
