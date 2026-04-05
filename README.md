@@ -1,107 +1,167 @@
 # Agent Wiki
 
-A simple Karpathy-style starter for building a persistent wiki with an LLM.
+A Karpathy-style knowledge base that any LLM agent can read and maintain.
+
+You drop sources, the AI compiles a wiki, and knowledge compounds over time.
 
 ## Prerequisites
 
-Requires: bash, git. Optional: rg (ripgrep) for faster search.
+Requires: `bash`, `git`. Optional: `rg` ([ripgrep](https://github.com/BurntSushi/ripgrep)) for faster search.
 
-This repo is the starting vault.
-Clone it, open it in your agent, and let the agent set everything up.
-
-- `raw/` is where you drop source material
-- `wiki/` is where the LLM compiles knowledge
-- `outputs/` is where generated reports and research live
-
-`INSTALL.md` is for setup.
-`SKILL.md` is for day-to-day use.
-`tools/wikictl` is the local engine. `tools/mcp/` is optional.
-
-## Two concrete examples
-
-### Example 1: Working inside the wiki (In-Wiki mode)
-
-You open Claude, Codex, or Hermès in this repo.
-
-You say:
-
-```text
-Read INSTALL.md and set up agent-wiki for this repo.
-Read SKILL.md and use agent-wiki for this session.
-```
-
-Then your flow is:
-
-```text
-/agent-wiki start
-...ingest sources, ask questions, update the wiki...
-/agent-wiki finish
-```
-
-### Example 2: Coding in another repo, using agent-wiki as memory (Second-Brain mode)
-
-You open the agent in another repo, for example a client codebase.
-
-The code work happens there.
-The durable memory lives in `agent-wiki`.
-
-Your flow is:
-
-```text
-/agent-wiki start
-...work in the code repo...
-/agent-wiki finish
-```
-
-In this mode, the wiki is not the main workspace.
-It is the second brain that keeps context, decisions, failures, and next steps across sessions.
-
-## Getting started
-
-Open this repo in your agent and say:
-
-```text
-Read INSTALL.md and set up agent-wiki for this repo.
-Read SKILL.md and use agent-wiki for this session.
-```
-
-Daily flow: `/agent-wiki start` → work → `/agent-wiki progress` → work → `/agent-wiki finish`.
-
-## Under the hood
+## Quick start
 
 ```bash
-./tools/wikictl status
-./tools/wikictl ingest "Project" raw/untracked/source.md
-./tools/wikictl query "search terms"
-./tools/wikictl lint
-./tools/wikictl heal
-./tools/wikictl sync claude done "updated project memory"
+git clone https://github.com/originlabs-app/agent-wiki.git
+cd agent-wiki
 ```
 
-## Folder model
+Open in your agent (Claude Code, Codex, Cursor, Hermes) and say:
 
-```text
-raw/
-  untracked/   new source material waiting to be ingested
-  ingested/    source material already processed
-
-wiki/
-  index.md     the table of contents
-  log.md       append-only operation log
-  projects/    project pages
-  sources/     source pages
-  decisions/   decision pages
-
-outputs/
-  README.md
 ```
+Read INSTALL.md and set up agent-wiki.
+```
+
+Then say:
+
+```
+/agent-wiki start
+```
+
+That's it. The agent reads the wiki, briefs you, and you're working.
+
+---
+
+## How to use
+
+### The daily workflow
+
+```
+/agent-wiki start       ← begin your session
+       ↓
+    work normally
+       ↓
+/agent-wiki progress    ← optional mid-session checkpoint
+       ↓
+    keep working
+       ↓
+/agent-wiki finish      ← end your session, write back to wiki
+```
+
+### When you have a source to add
+
+```
+/agent-wiki ingest      ← paste a URL, text, or file path
+```
+
+The agent saves it to `raw/`, reads it, asks you socratic questions about what it means, compiles it into the wiki, and cross-links with existing pages.
+
+### Monthly health check
+
+```
+/agent-wiki health      ← deep audit of the wiki
+```
+
+Finds contradictions, orphan pages, stale content, dead links, unsourced claims, and suggests new pages to fill gaps.
+
+---
+
+## All commands
+
+### Skill commands (you say these to your agent)
+
+| Command | When | What it does |
+|---------|------|-------------|
+| `/agent-wiki start` | Beginning of session | Reads wiki, detects tensions, briefs you, asks socratic questions, proposes a plan |
+| `/agent-wiki ingest` | When you have a source | Saves to raw/, compiles into wiki, cross-links, flags contradictions |
+| `/agent-wiki progress` | Mid-session | Quick checkpoint — scope drift detection, save suggestions, health check |
+| `/agent-wiki finish` | End of session | Proposes write-back, asks what changed, updates wiki, logs |
+| `/agent-wiki health` | Monthly | Deep audit — contradictions, orphans, staleness, gaps, error propagation |
+
+### CLI commands (the engine behind the skill)
+
+| Command | What it does |
+|---------|-------------|
+| `./tools/wikictl status` | Health summary — pages count, stale detection |
+| `./tools/wikictl ingest "<project>" <source>` | Register source, update project page, move to ingested/ |
+| `./tools/wikictl query "<terms>"` | Search across wiki/ and raw/ |
+| `./tools/wikictl lint` | Check structure — missing files, broken links |
+| `./tools/wikictl heal` | Rebuild wiki/index.md from project pages |
+| `./tools/wikictl sync <agent> <op> "<desc>"` | End-of-session write-back + lint + status |
+| `./tools/wikictl log <agent> <op> "<desc>"` | Append entry to wiki/log.md |
+
+You don't usually call wikictl directly — the skill commands call it for you.
+
+---
+
+## Two modes
+
+### Mode 1: In-Wiki
+
+Open your agent in this repo. Work directly in `raw/`, `wiki/`, `outputs/`. The repo is your wiki.
+
+### Mode 2: Second-Brain
+
+Open your agent in another repo (client code, project, etc.). Agent-wiki lives alongside as shared memory. Your code stays in the code repo. Durable knowledge goes into agent-wiki.
+
+Both modes use the same 5 commands.
+
+---
+
+## Folder structure
+
+```
+agent-wiki/
+├── raw/
+│   ├── untracked/     ← drop sources here
+│   └── ingested/      ← processed sources land here
+├── wiki/
+│   ├── index.md       ← table of contents (read first)
+│   ├── log.md         ← operation history
+│   ├── projects/      ← one page per project
+│   ├── sources/       ← one page per ingested source
+│   └── decisions/     ← architecture / business decisions
+├── outputs/           ← generated answers, reports, research
+├── tools/
+│   ├── wikictl        ← CLI engine (bash)
+│   └── mcp/           ← optional MCP transport (Node.js)
+├── SKILL.md           ← the 5 commands (agents read this)
+├── AGENTS.md          ← schema and rules
+├── CLAUDE.md          ← Claude Code entry point
+├── INSTALL.md         ← agent-driven setup
+└── README.md          ← you are here
+```
+
+## Key files
+
+| File | Who reads it | Purpose |
+|------|-------------|---------|
+| `SKILL.md` | Your agent | Session workflow — start, ingest, progress, finish, health |
+| `AGENTS.md` | Your agent | Schema — folder structure, rules, operations |
+| `INSTALL.md` | Your agent | First-time setup — detects tools, asks questions, installs skill |
+| `CLAUDE.md` | Claude Code | Entry point that points to SKILL.md and AGENTS.md |
+| `wiki/index.md` | Everyone | Table of contents for the compiled wiki |
+
+---
+
+## MCP (optional)
+
+If your agent speaks MCP:
+
+```bash
+cd tools && npm install && npm run mcp
+```
+
+---
 
 ## Notes
 
-- Obsidian is optional.
-- You do not need a database.
-- `raw/`, `wiki/`, and `outputs/` are the only folders that matter.
-- The default setup flow is agent-first.
+- Obsidian is optional. Open the repo as a vault for graph view and backlinks.
+- No database. No embeddings. Pure markdown.
+- The agent writes the wiki. You read it and ask questions.
+
+## Credits
+
+Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
 
 ## License
 
