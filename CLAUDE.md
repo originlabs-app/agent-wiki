@@ -1,8 +1,5 @@
-# Claude Adapter
+# Agent Wiki
 
-Read `AGENTS.md` first.
+Read `SKILL.md` for the full protocol. Read `AGENTS.md` for the contract details.
 
-This file exists so Claude Code can discover the same shared contract from a
-tool-specific entry point. Do not duplicate the workflow here.
-
-For local bootstrap, run `./scripts/bootstrap-local.sh`.
+Use `./cli/wikictl` to interact with the wiki.

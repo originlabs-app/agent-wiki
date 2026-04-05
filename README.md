@@ -8,13 +8,19 @@ Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6b
 
 ---
 
-## Quickstart
+## Install
 
-Pick the mode that fits your setup.
+### As a skill (recommended)
 
-### Mode 1: Starter
+Works with Claude Code, Codex, Cursor, Gemini CLI, and any agent supporting the [Agent Skills](https://agentskills.io/) standard:
 
-You do not have a vault yet, or you just want a working local starter.
+```bash
+npx skills add originlabs-app/agent-wiki
+```
+
+The skill teaches your agent how to use `wikictl` and the wiki protocol. Your existing configs are not modified.
+
+### As a standalone repo
 
 ```bash
 git clone https://github.com/originlabs-app/agent-wiki.git
@@ -22,34 +28,17 @@ cd agent-wiki
 ./install.sh
 ```
 
-Open the folder in Claude Code, Codex, or Cursor. The agent reads `AGENTS.md` and starts working with the wiki.
+Open the folder in your agent. It reads `SKILL.md` automatically.
 
-### Mode 2: Starter + Obsidian
+### Inside an existing repo or vault
 
-Same as Mode 1, then open the `agent-wiki` folder as an Obsidian vault.
+Give `INSTALL.md` to your LLM agent:
 
-Obsidian is just a reading surface — you browse the wiki, follow backlinks, use graph view. Agents still do the writing.
-
-You don't need Obsidian. It's nice to have.
-
-### Mode 3: Attach to an existing vault
-
-`agent-wiki` stays as tooling. Your existing vault keeps its own structure. The only contract is: give `agent-wiki` a `wiki_root` and a `raw_root`.
-
-```bash
-cp docs/examples/origin-labs.conf.example ~/.agent-wiki/instances/origin-labs.conf
-./cli/wikictl --instance origin-labs status
+```
+Read INSTALL.md and set up agent-wiki on my machine.
 ```
 
-Then point the config at your real vault paths and use:
-
-```bash
-./cli/wikictl --instance origin-labs ingest "BSACopilot" /path/to/source.md
-./cli/wikictl --instance origin-labs query karpathy wiki
-./cli/wikictl --instance origin-labs sync anna done "compiled meeting notes"
-```
-
-Read [`docs/vault-organization.md`](docs/vault-organization.md) for the minimum required structure.
+The agent will add the wiki layer to your existing project without overwriting anything.
 
 ---
 
@@ -80,41 +69,60 @@ That's the compounding effect. Each session makes the next one faster.
 ## What's inside
 
 ```
-raw/                    # drop sources here (immutable, agents never edit)
-wiki/
-├── index.md            # read this first — catalog of everything
-├── log.md              # append-only operation log
-├── projects/           # one page per project (compiled summaries)
-├── sources/            # one page per ingested source
-└── decisions/          # architecture and business decisions
-AGENTS.md               # the contract — every agent reads this
-cli/wikictl             # local CLI for ingest, query, heal, sync
+agent-wiki/
+├── SKILL.md                 # the skill — agents read this to learn the protocol
+├── AGENTS.md                # full contract (read order, access control, rules)
+├── CLAUDE.md                # Claude Code entry point → SKILL.md
+├── cli/wikictl              # CLI tool (bash, zero dependencies)
+├── wiki/
+│   ├── index.md             # entry point — read this first
+│   ├── log.md               # append-only operation log
+│   ├── projects/            # one page per project
+│   ├── sources/             # one page per ingested source
+│   └── decisions/           # architecture and business decisions
+├── raw/                     # immutable source material
+├── mcp/server.mjs           # MCP transport (optional, needs Node.js)
+├── contract/manifest.yaml   # protocol at a glance
+├── INSTALL.md               # LLM-friendly install instructions
+└── docs/
+    ├── usage.md
+    ├── tool-configs.md
+    ├── vault-organization.md
+    └── examples/            # 4 real use-case walkthroughs
 ```
 
 ## Commands
 
 ```bash
-./cli/wikictl ingest "My Project" raw/article.md   # register a source
-./cli/wikictl --instance origin-labs status        # operate on an attached vault
-./cli/wikictl query "search terms"                  # search wiki + raw
-./cli/wikictl heal                                  # rebuild index
-./cli/wikictl sync claude done "finished auth"      # end-of-session write-back
-./cli/wikictl status                                # health check
-./cli/wikictl lint                                  # structure check
+wikictl status                              # health check
+wikictl ingest "My Project" raw/source.md   # register a source
+wikictl query "search terms"                # search wiki + raw
+wikictl heal                                # rebuild index
+wikictl sync claude done "finished auth"    # end-of-session write-back
+wikictl lint                                # structure check
+```
+
+Instance mode (for external vaults):
+```bash
+wikictl --instance my-vault status
+wikictl --config ~/.agent-wiki/instances/my-vault.conf query "test"
 ```
 
 ---
 
 ## Supported agents
 
-| Agent | Entry point | How it writes |
-|-------|-------------|---------------|
-| Claude Code | `CLAUDE.md` → `AGENTS.md` | `wikictl` or MCP |
-| Codex | `AGENTS.md` | `wikictl` or MCP |
-| Cursor | `AGENTS.md` or `.cursor/rules/` | `wikictl` or MCP |
-| Hermes | `adapters/hermes/SKILL.md` | `wikictl` or MCP |
+The `SKILL.md` follows the [Agent Skills](https://agentskills.io/) open standard. It works with:
 
-All agents follow the same contract. Adapters are thin — one file each.
+- Claude Code
+- OpenAI Codex
+- Cursor
+- Gemini CLI
+- GitHub Copilot
+- Hermes
+- Any agent that reads SKILL.md
+
+All agents follow the same protocol. One skill, not four adapters.
 
 ---
 
@@ -123,9 +131,9 @@ All agents follow the same contract. Adapters are thin — one file each.
 See [`docs/examples/`](docs/examples/) for detailed walkthroughs:
 
 - **[Research project](docs/examples/research-project.md)** — cumulative synthesis over weeks.
-- **[Software project](docs/examples/software-project.md)** — multi-agent handoff, architecture decisions survive across sessions.
-- **[Business operations](docs/examples/business-operations.md)** — meeting notes compiled into living project pages.
-- **[Analysis dossier](docs/examples/analysis-dossier.md)** — benchmarking and due diligence with full source trail.
+- **[Software project](docs/examples/software-project.md)** — multi-agent handoff, decisions survive across sessions.
+- **[Business operations](docs/examples/business-operations.md)** — meetings compiled into living project pages.
+- **[Analysis dossier](docs/examples/analysis-dossier.md)** — benchmarking with full source trail.
 
 ---
 
@@ -138,28 +146,29 @@ If your agent speaks MCP:
 ```bash
 npm install
 npm run mcp
-npm run mcp -- --instance origin-labs
 ```
 
-The MCP server exposes the same operations as the CLI over the tool transport.
+Exposes the same operations as the CLI over the MCP tool transport.
 
-### Hooks (Claude Code)
+### Instance mode
 
-`.claude/settings.json` includes hooks for automatic write-back at end of session. See [`docs/tool-configs.md`](docs/tool-configs.md).
-
-### Adapters
-
-Each agent gets a thin adapter file in `adapters/`. These just point to `AGENTS.md`. See [`docs/tool-configs.md`](docs/tool-configs.md) for the full config map.
-
-### Bootstrap local configs
-
-To link adapters into your local tool config directories:
+Attach agent-wiki to an existing vault or folder without moving files:
 
 ```bash
-./scripts/bootstrap-local.sh
+mkdir -p ~/.agent-wiki/instances
+cat > ~/.agent-wiki/instances/my-vault.conf << EOF
+WIKI_ROOT=/path/to/your/wiki
+RAW_ROOT=/path/to/your/raw
+EOF
+
+wikictl --instance my-vault status
 ```
 
-This symlinks the adapter files into `~/.claude/`, `~/.codex/`, `~/.cursor/`, and `~/.hermes/`.
+### Obsidian
+
+Open the `agent-wiki` folder (or your attached vault) as an Obsidian vault. Obsidian is just a reading surface — agents do the writing. You get backlinks, graph view, and visual navigation for free.
+
+Not required. Not a dependency.
 
 ---
 
@@ -171,6 +180,10 @@ This symlinks the adapter files into `~/.claude/`, `~/.codex/`, `~/.cursor/`, an
 - Not tied to any single agent or provider.
 
 ---
+
+## Credits
+
+Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) (April 2026).
 
 ## License
 

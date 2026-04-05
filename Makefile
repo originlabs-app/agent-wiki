@@ -1,4 +1,4 @@
-.PHONY: init status lint sync heal bootstrap mcp verify
+PHONY: init status lint sync heal mcp verify
 
 init:
 	./install.sh
@@ -14,9 +14,6 @@ sync:
 
 heal:
 	./cli/wikictl heal
-
-bootstrap:
-	./scripts/bootstrap-local.sh
 
 mcp:
 	npm run mcp

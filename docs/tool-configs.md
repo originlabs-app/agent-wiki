@@ -1,64 +1,74 @@
 # Tool Config Map
 
-This repo is intentionally simple: the same contract is reused across tools,
-with thin adapters where needed.
+agent-wiki uses a single `SKILL.md` that follows the [Agent Skills](https://agentskills.io/) standard.
 
-`agent-wiki` supports two storage modes:
+## Installation
 
-- Starter mode: `wikictl` uses the local `wiki/` and `raw/` in this repo.
-- Attach mode: `wikictl --instance <name>` or `wikictl --config <path>` points at an external vault.
+```bash
+npx skills add originlabs-app/agent-wiki
+```
 
-## Claude
+This installs `SKILL.md` into the correct directory for each detected agent:
 
-- Root contract: `CLAUDE.md`
-- Project hooks: `.claude/settings.json`
-- End-of-session write-back: `./cli/wikictl sync`
-- Health check: `./cli/wikictl heal`
-- Source registration: `./cli/wikictl ingest`
-- Search: `./cli/wikictl query`
+| Agent | Skill installed to |
+|-------|--------------------|
+| Claude Code | `~/.claude/skills/agent-wiki/SKILL.md` |
+| Codex | `~/.agents/skills/agent-wiki/SKILL.md` |
+| Cursor | `~/.cursor/skills/agent-wiki/SKILL.md` |
+| Hermes | `~/.hermes/skills/agent-wiki/SKILL.md` |
 
-Claude Code reads the project `CLAUDE.md` and project settings file when you
-open the repo. For an attached vault, call `wikictl --instance <name> ...` in
-hooks or prompts.
+## What the skill does
 
-## Codex
+The skill tells the agent:
+1. Detect if wikictl is available
+2. If yes: read wiki before work, write back after work
+3. If no: continue normally, don't fail
 
-- Root contract: `AGENTS.md`
-- Repo workflow helper: `./cli/wikictl`
-- End-of-session write-back: `./cli/wikictl sync`
-- Health check: `./cli/wikictl heal`
-- Source registration: `./cli/wikictl ingest`
-- Search: `./cli/wikictl query`
+## What the skill does NOT do
 
-Codex uses `AGENTS.md` as the project instruction surface in this pack.
-For an attached vault, use `wikictl --instance <name> ...` or `--config`.
+- Does not overwrite any existing config files
+- Does not modify CLAUDE.md, AGENTS.md, or any global config
+- Does not install wikictl (it's in the repo or on PATH)
+- Does not require MCP
 
-## Cursor
+## Manual install (without npx)
 
-- Root contract fallback: `AGENTS.md`
-- Project rules: `.cursor/rules/agent-wiki.mdc`
-- End-of-session write-back: `./cli/wikictl sync`
-- Health check: `./cli/wikictl heal`
-- Source registration: `./cli/wikictl ingest`
-- Search: `./cli/wikictl query`
+Copy `SKILL.md` from the repo root to your agent's skill directory:
 
-Cursor understands project rules in `.cursor/rules` and also supports
-`AGENTS.md` as a simpler alternative.
+```bash
+# Claude Code
+mkdir -p ~/.claude/skills/agent-wiki
+cp SKILL.md ~/.claude/skills/agent-wiki/
 
-## Hermès
+# Codex
+mkdir -p ~/.agents/skills/agent-wiki
+cp SKILL.md ~/.agents/skills/agent-wiki/
 
-- Adapter: `adapters/hermes/SKILL.md`
-- End-of-session write-back: `./cli/wikictl sync`
-- Health check: `./cli/wikictl heal`
-- Source registration: `./cli/wikictl ingest`
-- Search: `./cli/wikictl query`
+# Hermes
+mkdir -p ~/.hermes/skills/agent-wiki
+cp SKILL.md ~/.hermes/skills/agent-wiki/
+```
 
-Hermès uses the shared contract plus the skill wrapper.
+## Instance configuration
 
-## MCP
+To point wikictl at an external vault:
 
-The MCP server follows the same mode split:
+```bash
+mkdir -p ~/.agent-wiki/instances
+cat > ~/.agent-wiki/instances/my-vault.conf << EOF
+WIKI_ROOT=/path/to/wiki
+RAW_ROOT=/path/to/raw
+EOF
+```
 
-- `npm run mcp`
-- `npm run mcp -- --instance origin-labs`
-- `npm run mcp -- --config ~/.agent-wiki/instances/origin-labs.conf`
+Then: `wikictl --instance my-vault status`
+
+## MCP (optional)
+
+```bash
+cd /path/to/agent-wiki
+npm install
+npm run mcp
+```
+
+Adds tool-based access to wikictl operations. Not required for basic usage.
