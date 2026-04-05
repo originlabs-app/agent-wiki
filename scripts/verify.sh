@@ -33,4 +33,26 @@ EOF
   grep -Fq '[[wiki/projects/sample-project]]' wiki/index.md
 )
 
+mkdir -p "$TMPDIR/external-vault/wiki" "$TMPDIR/external-vault/raw"
+cat >"$TMPDIR/external-vault/raw/external-source.md" <<'EOF'
+# External Source
+
+Karpathy style wiki compilation for an attached vault instance.
+EOF
+cat >"$TMPDIR/origin-labs.conf" <<EOF
+INSTANCE_NAME=origin-labs
+WIKI_ROOT=$TMPDIR/external-vault/wiki
+RAW_ROOT=$TMPDIR/external-vault/raw
+SOURCE_DIRS=$TMPDIR/external-vault/projects:$TMPDIR/external-vault/clients
+EOF
+(
+  cd "$TMPDIR/repo"
+  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" init
+  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" ingest "Attached Vault" "$TMPDIR/external-vault/raw/external-source.md"
+  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" query karpathy
+  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" heal
+  ./cli/wikictl --config "$TMPDIR/origin-labs.conf" lint
+  grep -Fq '[[wiki/projects/attached-vault]]' "$TMPDIR/external-vault/wiki/index.md"
+)
+
 echo "verify: ok"

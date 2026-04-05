@@ -10,9 +10,11 @@ Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6b
 
 ## Quickstart
 
-Pick the mode that fits your setup:
+Pick the mode that fits your setup.
 
-### Mode 1: Standalone (no Obsidian, no existing repo)
+### Mode 1: Starter
+
+You do not have a vault yet, or you just want a working local starter.
 
 ```bash
 git clone https://github.com/originlabs-app/agent-wiki.git
@@ -22,7 +24,7 @@ cd agent-wiki
 
 Open the folder in Claude Code, Codex, or Cursor. The agent reads `AGENTS.md` and starts working with the wiki.
 
-### Mode 2: With Obsidian
+### Mode 2: Starter + Obsidian
 
 Same as Mode 1, then open the `agent-wiki` folder as an Obsidian vault.
 
@@ -30,21 +32,24 @@ Obsidian is just a reading surface — you browse the wiki, follow backlinks, us
 
 You don't need Obsidian. It's nice to have.
 
-### Mode 3: Inside an existing repo or vault
+### Mode 3: Attach to an existing vault
+
+`agent-wiki` stays as tooling. Your existing vault keeps its own structure. The only contract is: give `agent-wiki` a `wiki_root` and a `raw_root`.
 
 ```bash
-cd ~/your-existing-project
-curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/install.sh | bash -s -- --here
+cp docs/examples/origin-labs.conf.example ~/.agent-wiki/instances/origin-labs.conf
+./cli/wikictl --instance origin-labs status
 ```
 
-Or manually:
+Then point the config at your real vault paths and use:
 
 ```bash
-git clone https://github.com/originlabs-app/agent-wiki.git /tmp/agent-wiki
-cp -r /tmp/agent-wiki/{AGENTS.md,cli,wiki,raw} ~/your-existing-project/
+./cli/wikictl --instance origin-labs ingest "BSACopilot" /path/to/source.md
+./cli/wikictl --instance origin-labs query karpathy wiki
+./cli/wikictl --instance origin-labs sync anna done "compiled meeting notes"
 ```
 
-This adds the wiki layer to your existing project. Your code and files stay untouched.
+Read [`docs/vault-organization.md`](docs/vault-organization.md) for the minimum required structure.
 
 ---
 
@@ -90,6 +95,7 @@ cli/wikictl             # local CLI for ingest, query, heal, sync
 
 ```bash
 ./cli/wikictl ingest "My Project" raw/article.md   # register a source
+./cli/wikictl --instance origin-labs status        # operate on an attached vault
 ./cli/wikictl query "search terms"                  # search wiki + raw
 ./cli/wikictl heal                                  # rebuild index
 ./cli/wikictl sync claude done "finished auth"      # end-of-session write-back
@@ -132,6 +138,7 @@ If your agent speaks MCP:
 ```bash
 npm install
 npm run mcp
+npm run mcp -- --instance origin-labs
 ```
 
 The MCP server exposes the same operations as the CLI over the tool transport.

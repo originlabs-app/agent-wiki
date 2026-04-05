@@ -12,45 +12,29 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
-const WIKI = path.join(ROOT, "wiki");
-const RAW = path.join(ROOT, "raw");
-const LOG = path.join(WIKI, "log.md");
-const INDEX = path.join(WIKI, "index.md");
 const CLI = path.join(ROOT, "cli", "wikictl");
 
-function ensurePaths() {
-  fs.mkdirSync(path.join(WIKI, "projects"), { recursive: true });
-  fs.mkdirSync(RAW, { recursive: true });
-}
+function parseCliContext(argv) {
+  const cliContext = [];
 
-function readFileSafe(filePath) {
-  return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
-}
-
-function appendLog(agent, op, description) {
-  ensurePaths();
-  if (!fs.existsSync(LOG)) {
-    fs.writeFileSync(
-      LOG,
-      [
-        "---",
-        "type: wiki-log",
-        "created: 2026-04-05",
-        "---",
-        "",
-        "# Wiki Log",
-        "",
-        "Append-only. One entry per operation.",
-      ].join("\n") + "\n",
-    );
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--instance" || arg === "--config") {
+      const value = argv[i + 1];
+      if (value) {
+        cliContext.push(arg, value);
+        i += 1;
+      }
+    }
   }
-  const date = new Date().toISOString().slice(0, 10);
-  fs.appendFileSync(LOG, `\n## [${date}] ${agent} | ${op} | ${description}\n`);
-  return `logged: ${agent} | ${op}`;
+
+  return cliContext;
 }
+
+const CLI_CONTEXT = parseCliContext(process.argv.slice(2));
 
 function runCli(args) {
-  const result = spawnSync(CLI, args, {
+  const result = spawnSync(CLI, [...CLI_CONTEXT, ...args], {
     cwd: ROOT,
     encoding: "utf8",
     env: process.env,
@@ -67,9 +51,35 @@ function runCli(args) {
   return (result.stdout || "").trim();
 }
 
+function parseKeyValue(text) {
+  return text.split("\n").reduce((acc, line) => {
+    const idx = line.indexOf("=");
+    if (idx === -1) {
+      return acc;
+    }
+    const key = line.slice(0, idx);
+    const value = line.slice(idx + 1);
+    acc[key] = value;
+    return acc;
+  }, {});
+}
+
+function resolvePaths() {
+  return parseKeyValue(runCli(["paths"]));
+}
+
+function readFileSafe(filePath) {
+  return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
+}
+
 function listProjects() {
-  ensurePaths();
-  const dir = path.join(WIKI, "projects");
+  const paths = resolvePaths();
+  const dir = path.join(paths.wiki_root, "projects");
+
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+
   return fs
     .readdirSync(dir)
     .filter((name) => name.endsWith(".md"))
@@ -96,7 +106,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "status",
-      description: "Return a short health summary of the local knowledge base.",
+      description: "Return a short health summary of the active knowledge base.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -104,7 +114,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "read_index",
-      description: "Read wiki/index.md.",
+      description: "Read wiki/index.md from the active instance.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -112,7 +122,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "list_projects",
-      description: "List project wiki pages.",
+      description: "List project wiki pages from the active instance.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -120,7 +130,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "read_project",
-      description: "Read a project wiki page.",
+      description: "Read a project wiki page from the active instance.",
       inputSchema: {
         type: "object",
         properties: {
@@ -181,57 +191,38 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  ensurePaths();
   const { name, arguments: args = {} } = request.params;
 
   if (name === "status") {
     return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              root: ROOT,
-              wikiProjectPages: listProjects().length,
-              rawFiles: fs.readdirSync(RAW).length,
-              index: fs.existsSync(INDEX),
-              log: fs.existsSync(LOG),
-            },
-            null,
-            2,
-          ),
-        },
-      ],
+      content: [{ type: "text", text: runCli(["status"]) }],
     };
   }
 
   if (name === "read_index") {
+    const paths = resolvePaths();
     return {
-      content: [{ type: "text", text: readFileSafe(INDEX) }],
+      content: [{ type: "text", text: readFileSafe(paths.index) }],
     };
   }
 
   if (name === "list_projects") {
     return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(listProjects(), null, 2),
-        },
-      ],
+      content: [{ type: "text", text: JSON.stringify(listProjects(), null, 2) }],
     };
   }
 
   if (name === "read_project") {
+    const paths = resolvePaths();
     const fileName = `${String(args.name).replace(/[^A-Za-z0-9._-]/g, "")}.md`;
-    const filePath = path.join(WIKI, "projects", fileName);
+    const filePath = path.join(paths.wiki_root, "projects", fileName);
     return {
       content: [{ type: "text", text: readFileSafe(filePath) }],
     };
   }
 
   if (name === "append_log") {
-    const result = appendLog(args.agent, args.op, args.description);
+    const result = runCli(["log", args.agent, args.op, args.description]);
     return {
       content: [{ type: "text", text: result }],
     };
@@ -246,7 +237,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === "query") {
-    const result = runCli(["query", args.query]);
+    const queryArgs = String(args.query).split(/\s+/).filter(Boolean);
+    const result = runCli(["query", ...queryArgs]);
     return {
       content: [{ type: "text", text: result }],
     };
