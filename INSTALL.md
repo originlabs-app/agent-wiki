@@ -179,7 +179,31 @@ Based on Question 3 (use case), personalize the `## What This Is` section in AGE
 If they said "software development", suggest creating an initial project page:
 "Want me to create a wiki page for a current project? Give me the name."
 
-## Step 8: Verify and report
+## Step 8: Clean up the wiki folder
+
+Now that skills and wikictl are installed on the machine, remove the tool files from the wiki folder. The user's wiki should only contain their content.
+
+```bash
+cd [wiki-path]
+rm -rf skills/
+rm -rf tools/
+rm -f SKILL.md INSTALL.md CLAUDE.md README.md LICENSE package.json .gitignore
+rm -rf .git
+```
+
+What stays:
+
+```
+[wiki-path]/
+├── raw/
+├── wiki/
+├── outputs/
+└── AGENTS.md
+```
+
+AGENTS.md stays because it's the schema — agents read it to know the rules.
+
+## Step 9: Verify and report
 
 ```bash
 wikictl status
@@ -188,8 +212,9 @@ wikictl lint
 
 Report:
 
-- Where the wiki was installed
-- Which agents got the skill
+- Where the wiki lives (clean, only content files)
+- Where wikictl is installed (PATH)
+- Which agents got the skills
 - What was added to their configs (quote the exact lines)
 - What was NOT touched
 - How to start: "Type `/agent-wiki-start` in any agent session"
