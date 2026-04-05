@@ -36,7 +36,7 @@ Report what you found.
 
 Where do you want it?"
 
-If they give a path, check if wiki/ and raw/ exist there. If not, create them.
+If they give a path, check if raw/, wiki/, and outputs/ exist there. If not, create them.
 
 ### Question 3: How will you use it?
 
