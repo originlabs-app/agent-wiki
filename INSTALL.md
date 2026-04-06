@@ -74,18 +74,23 @@ done
 mkdir -p tools && curl -sL https://raw.githubusercontent.com/originlabs-app/agent-wiki/main/tools/wikictl -o tools/wikictl && chmod +x tools/wikictl
 ```
 
-## Step 4: Make wikictl available everywhere
+## Step 4: Install wikictl permanently
+
+Copy wikictl to a permanent location that won't be affected by the wiki cleanup step:
 
 ```bash
 chmod +x ./tools/wikictl
 ./tools/wikictl init
+mkdir -p ~/.agent-wiki/bin
+cp ./tools/wikictl ~/.agent-wiki/bin/wikictl
+chmod +x ~/.agent-wiki/bin/wikictl
 ```
 
-Add wikictl to PATH so it works from any directory. Use a wrapper script (not a symlink — symlinks break the path resolution):
+Create a wrapper in PATH:
 
 ```bash
 mkdir -p ~/.local/bin
-printf '#!/usr/bin/env bash\nexec "%s/tools/wikictl" "$@"\n' "$(pwd)" > ~/.local/bin/wikictl
+printf '#!/usr/bin/env bash\nexec "$HOME/.agent-wiki/bin/wikictl" "$@"\n' > ~/.local/bin/wikictl
 chmod +x ~/.local/bin/wikictl
 ```
 

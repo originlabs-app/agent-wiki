@@ -851,10 +851,7 @@ cmd_lint() {
     "$SOURCE_TEMPLATE" \
     "$DECISION_TEMPLATE" \
     "$OUTPUTS/README.md" \
-    "$ROOT/AGENTS.md" \
-    "$ROOT/CLAUDE.md" \
-    "$ROOT/README.md" \
-    "$ROOT/INSTALL.md"; do
+    "$ROOT/AGENTS.md"; do
     if [[ ! -f "$path" ]]; then
       echo "missing: $path" >&2
       missing=1
