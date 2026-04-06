@@ -562,8 +562,7 @@ append_log() {
   ensure_dirs
   ensure_files
   {
-    echo
-    echo "## [$(today)] $agent | $op | $description"
+    echo "[$(today)] $agent | $op | $description"
   } >>"$LOG"
 }
 
@@ -863,7 +862,7 @@ cmd_lint() {
     missing=1
   fi
 
-  if search_quiet '^## \[' "$LOG"; then
+  if search_quiet '^\[' "$LOG"; then
     :
   elif ! search_quiet '^Format:$' "$LOG"; then
     echo "missing: log entry format" >&2
