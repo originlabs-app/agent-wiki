@@ -26,7 +26,10 @@ class LocalStorage:
         self.root = Path(root)
 
     def _resolve(self, path: str) -> Path:
-        return self.root / path
+        resolved = (self.root / path).resolve()
+        if not resolved.is_relative_to(self.root.resolve()):
+            raise ValueError(f"Path traversal blocked: {path}")
+        return resolved
 
     def read(self, path: str) -> str | None:
         p = self._resolve(path)

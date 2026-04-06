@@ -47,9 +47,17 @@ class Extraction:
     def merge(self, other: Extraction) -> Extraction:
         seen_ids = {n.id for n in self.nodes}
         new_nodes = [n for n in other.nodes if n.id not in seen_ids]
+        # Deduplicate edges by (source, target, relation), keep higher confidence
+        _CONF_RANK = {"EXTRACTED": 3, "INFERRED": 2, "AMBIGUOUS": 1}
+        edge_map: dict[tuple[str, str, str], Edge] = {}
+        for e in self.edges + other.edges:
+            key = (e.source, e.target, e.relation)
+            existing = edge_map.get(key)
+            if existing is None or _CONF_RANK.get(e.confidence, 0) > _CONF_RANK.get(existing.confidence, 0):
+                edge_map[key] = e
         return Extraction(
             nodes=self.nodes + new_nodes,
-            edges=self.edges + other.edges,
+            edges=list(edge_map.values()),
             input_tokens=self.input_tokens + other.input_tokens,
             output_tokens=self.output_tokens + other.output_tokens,
         )

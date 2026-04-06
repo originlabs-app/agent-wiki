@@ -1,7 +1,7 @@
 """Analyzer — god nodes, surprises, gaps, contradictions, audit."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, date as date_type, timedelta
 from typing import TYPE_CHECKING
 
 from atlas.core.models import AuditReport, Edge, GraphStats, LinkSuggestion
@@ -22,14 +22,14 @@ class Analyzer:
 
     def god_nodes(self, top_n: int = 10) -> list[tuple[str, int]]:
         """Return top N nodes by degree (most connected)."""
-        degrees = [(nid, self.graph._g.degree(nid)) for nid in self.graph._g.nodes]
+        degrees = [(nid, self.graph.degree(nid)) for nid in self.graph.iter_node_ids()]
         degrees.sort(key=lambda x: -x[1])
         return degrees[:top_n]
 
     def surprises(self, top_n: int = 10) -> list[Edge]:
         """Return edges ranked by surprise score (INFERRED/AMBIGUOUS + cross-community)."""
         scored: list[tuple[float, Edge]] = []
-        for u, v, data in self.graph._g.edges(data=True):
+        for u, v, data in self.graph.iter_edges(data=True):
             score = 0.0
             conf = data.get("confidence", "EXTRACTED")
             if conf == "AMBIGUOUS":
@@ -40,14 +40,16 @@ class Analyzer:
                 score += 1.0
 
             # Cross-community bonus
-            u_comm = self.graph._g.nodes[u].get("community")
-            v_comm = self.graph._g.nodes[v].get("community")
+            u_data = self.graph.get_node_data(u)
+            v_data = self.graph.get_node_data(v)
+            u_comm = u_data.get("community")
+            v_comm = v_data.get("community")
             if u_comm is not None and v_comm is not None and u_comm != v_comm:
                 score += 1.0
 
             # Cross file-type bonus
-            u_type = self.graph._g.nodes[u].get("type", "")
-            v_type = self.graph._g.nodes[v].get("type", "")
+            u_type = u_data.get("type", "")
+            v_type = v_data.get("type", "")
             if u_type != v_type:
                 score += 2.0
 
@@ -69,8 +71,14 @@ class Analyzer:
         report.god_nodes = self.god_nodes()
 
         if self.wiki:
-            all_links = self.wiki.all_wikilinks()
-            page_slugs = {p.slug for p in self.wiki.list_pages()}
+            # Read all pages once to avoid O(n²) re-reads
+            all_pages = self.wiki.list_pages()
+            all_links: dict[str, list[str]] = {}
+            page_slugs: set[str] = set()
+            for page in all_pages:
+                page_slugs.add(page.slug)
+                if page.wikilinks:
+                    all_links[page.path] = page.wikilinks
 
             # Broken links: wikilinks pointing to non-existent pages
             for page_path, links in all_links.items():
@@ -84,14 +92,17 @@ class Analyzer:
             for links in all_links.values():
                 for link in links:
                     incoming.add(link.rsplit("/", 1)[-1].removesuffix(".md"))
-            for page in self.wiki.list_pages():
+            for page in all_pages:
                 if page.slug not in incoming and page.type != "wiki-index":
                     report.orphan_pages.append(page.path)
 
             # Stale pages: not updated in 30+ days
             cutoff = (datetime.now() - timedelta(days=STALE_THRESHOLD_DAYS)).strftime("%Y-%m-%d")
-            for page in self.wiki.list_pages():
+            for page in all_pages:
                 updated = page.frontmatter.get("updated", "")
+                # Handle both str and datetime.date (YAML safe_load returns date objects)
+                if isinstance(updated, date_type):
+                    updated = updated.isoformat()
                 if isinstance(updated, str) and updated and updated < cutoff:
                     report.stale_pages.append(page.path)
 

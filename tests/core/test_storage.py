@@ -53,6 +53,15 @@ def test_mtime(tmp_path):
     assert mtime > 0
 
 
+def test_path_traversal_blocked(tmp_path):
+    import pytest
+    s = LocalStorage(root=tmp_path)
+    with pytest.raises(ValueError, match="Path traversal blocked"):
+        s.read("../../etc/passwd")
+    with pytest.raises(ValueError, match="Path traversal blocked"):
+        s.write("../../../tmp/evil.txt", "pwned")
+
+
 def test_hash(tmp_path):
     s = LocalStorage(root=tmp_path)
     s.write("wiki/concepts/auth.md", "# Auth")

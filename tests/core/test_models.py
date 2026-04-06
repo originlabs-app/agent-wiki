@@ -31,6 +31,22 @@ def test_extraction_merge():
     assert len(merged.edges) == 0
 
 
+def test_extraction_merge_dedup_edges():
+    e1 = Extraction(
+        nodes=[Node(id="a", label="A", type="code", source_file="a.py"), Node(id="b", label="B", type="code", source_file="b.py")],
+        edges=[Edge(source="a", target="b", relation="imports", confidence="INFERRED")],
+    )
+    e2 = Extraction(
+        nodes=[Node(id="a", label="A", type="code", source_file="a.py")],
+        edges=[Edge(source="a", target="b", relation="imports", confidence="EXTRACTED")],
+    )
+    merged = e1.merge(e2)
+    # Should dedup by (source, target, relation), keep higher confidence
+    import_edges = [e for e in merged.edges if e.source == "a" and e.target == "b" and e.relation == "imports"]
+    assert len(import_edges) == 1
+    assert import_edges[0].confidence == "EXTRACTED"  # higher confidence wins
+
+
 def test_page_creation():
     page = Page(
         path="wiki/concepts/auth.md",

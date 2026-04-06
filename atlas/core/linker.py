@@ -30,8 +30,11 @@ class Linker:
         for page in pages:
             slug_to_path[page.slug] = page.path
 
-        # Track existing nodes to detect removals
-        existing_wiki_nodes = {nid for nid in self.graph._g.nodes if self.graph._g.nodes[nid].get("_wiki_managed")}
+        # Track existing wiki-managed nodes
+        existing_wiki_nodes = {
+            nid for nid in self.graph.iter_node_ids()
+            if self.graph.get_node_data(nid).get("_wiki_managed")
+        }
 
         seen_nodes: set[str] = set()
         seen_edges: set[tuple[str, str]] = set()
@@ -41,8 +44,9 @@ class Linker:
             seen_nodes.add(node_id)
 
             # Create or update node
-            node = Node(
-                id=node_id,
+            is_new = self.graph.set_node(
+                node_id,
+                _wiki_managed=True,
                 label=page.title,
                 type=page.type,
                 source_file=page.path,
@@ -50,13 +54,6 @@ class Linker:
                 summary=page.frontmatter.get("description"),
                 tags=page.frontmatter.get("tags", []) if isinstance(page.frontmatter.get("tags"), list) else [],
             )
-            is_new = node_id not in self.graph._g
-            self.graph._g.add_node(node_id, _wiki_managed=True, **{
-                k: v for k, v in {
-                    "label": node.label, "type": node.type, "source_file": node.source_file,
-                    "confidence": node.confidence, "summary": node.summary, "tags": node.tags,
-                }.items() if v is not None
-            })
 
             if is_new:
                 changes.append(GraphChange(type="add_node", node_id=node_id, details=f"Wiki page: {page.title}"))
@@ -70,9 +67,9 @@ class Linker:
                     edge_key = (node_id, target_slug)
                     if edge_key not in seen_edges:
                         seen_edges.add(edge_key)
-                        if not self.graph._g.has_edge(node_id, target_slug) or \
-                                self.graph._g.edges[node_id, target_slug].get("_wiki_managed"):
-                            self.graph._g.add_edge(
+                        if not self.graph.has_edge(node_id, target_slug) or \
+                                self.graph.get_edge_data(node_id, target_slug).get("_wiki_managed"):
+                            self.graph.set_edge(
                                 node_id, target_slug,
                                 relation="references",
                                 confidence="EXTRACTED",
@@ -92,7 +89,7 @@ class Linker:
 
         # Remove wiki-managed edges that no longer exist as wikilinks
         edges_to_remove = []
-        for u, v, data in self.graph._g.edges(data=True):
+        for u, v, data in self.graph.iter_edges(data=True):
             if data.get("_wiki_managed") and (u, v) not in seen_edges and (v, u) not in seen_edges:
                 edges_to_remove.append((u, v))
         for u, v in edges_to_remove:
@@ -110,19 +107,19 @@ class Linker:
         wiki_slugs = {p.slug for p in self.wiki.list_pages()}
 
         # Suggest pages for graph nodes without wiki pages
-        for node_id in self.graph._g.nodes:
-            data = self.graph._g.nodes[node_id]
+        for node_id in self.graph.iter_node_ids():
+            data = self.graph.get_node_data(node_id)
             if not data.get("_wiki_managed") and node_id not in wiki_slugs:
                 label = data.get("label", node_id)
                 suggestions.append(WikiSuggestion(
                     type="create_page",
                     description=f"Node '{label}' exists in the graph but has no wiki page.",
                     source_node=node_id,
-                    reason=f"Discovered via scan. Type: {data.get('type', 'unknown')}. Degree: {self.graph._g.degree(node_id)}.",
+                    reason=f"Discovered via scan. Type: {data.get('type', 'unknown')}. Degree: {self.graph.degree(node_id)}.",
                 ))
 
         # Suggest wikilinks for INFERRED edges between pages that exist
-        for u, v, data in self.graph._g.edges(data=True):
+        for u, v, data in self.graph.iter_edges(data=True):
             if data.get("confidence") == "INFERRED" and not data.get("_wiki_managed"):
                 if u in wiki_slugs and v in wiki_slugs:
                     suggestions.append(WikiSuggestion(
@@ -135,7 +132,7 @@ class Linker:
                     ))
 
         # Suggest clarification for AMBIGUOUS edges
-        for u, v, data in self.graph._g.edges(data=True):
+        for u, v, data in self.graph.iter_edges(data=True):
             if data.get("confidence") == "AMBIGUOUS":
                 suggestions.append(WikiSuggestion(
                     type="clarify_relation",
