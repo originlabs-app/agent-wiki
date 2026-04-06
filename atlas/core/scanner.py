@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 CODE_EXTENSIONS = {".py", ".ts", ".js", ".go", ".rs", ".java", ".c", ".cpp", ".rb", ".cs", ".kt", ".scala", ".php"}
 DOC_EXTENSIONS = {".md", ".txt", ".rst"}
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+ALL_EXTENSIONS = CODE_EXTENSIONS | DOC_EXTENSIONS | IMAGE_EXTENSIONS | {".pdf"}
 
 # Map extensions to extractors (expand as more languages are added)
 _AST_EXTRACTORS = {
@@ -31,30 +32,36 @@ _SEMANTIC_EXTRACTORS = {
 
 
 class Scanner:
-    """Coordinates extraction across file types with optional caching."""
+    """Coordinates extraction across file types with optional caching.
+
+    Uses storage.walk() for file discovery — works with any StorageBackend,
+    not just local filesystem.
+    """
 
     def __init__(self, storage: StorageBackend, cache: CacheEngine | None = None):
         self.storage = storage
         self.cache = cache
 
-    def scan(self, path: Path, incremental: bool = False) -> Extraction:
+    def scan(self, path: Path | str, incremental: bool = False) -> Extraction:
         """Scan a directory, extract nodes and edges from all supported files.
 
-        If incremental=True and cache is available, only re-extract changed files.
+        Args:
+            path: Directory to scan. Can be a Path object or a string prefix
+                  relative to the storage root.
+            incremental: If True and cache is available, only re-extract changed files.
         """
-        files = self._collect_files(path)
+        # Normalize to a relative prefix string for storage.walk()
+        prefix = self._normalize_prefix(path)
+        rel_paths = self.storage.walk(prefix, suffixes=ALL_EXTENSIONS)
 
         if incremental and self.cache:
-            rel_paths = [str(f.relative_to(self.storage.root)) if f.is_relative_to(self.storage.root) else str(f) for f in files]
             changed = set(self.cache.detect_changed(rel_paths))
         else:
             changed = None  # process all
 
         merged = Extraction()
 
-        for file_path in files:
-            rel = str(file_path.relative_to(self.storage.root)) if file_path.is_relative_to(self.storage.root) else str(file_path)
-
+        for rel in rel_paths:
             # Check cache first
             if self.cache and changed is not None and rel not in changed:
                 cached = self.cache.check(rel)
@@ -62,8 +69,9 @@ class Scanner:
                     merged = merged.merge(cached)
                     continue
 
-            # Extract
-            extraction = self._extract_file(file_path)
+            # Extract — resolve to absolute path for extractors that need filesystem access
+            abs_path = Path(self.storage.root) / rel if hasattr(self.storage, "root") else Path(rel)
+            extraction = self._extract_file(abs_path)
             if extraction.nodes:
                 merged = merged.merge(extraction)
                 if self.cache:
@@ -78,13 +86,15 @@ class Scanner:
             return extractor(path)
         return Extraction()
 
-    def _collect_files(self, path: Path) -> list[Path]:
-        if not path.is_dir():
-            return [path] if path.is_file() else []
-        valid_extensions = CODE_EXTENSIONS | DOC_EXTENSIONS | IMAGE_EXTENSIONS | {".pdf"}
-        files = []
-        for f in sorted(path.rglob("*")):
-            if f.is_file() and f.suffix.lower() in valid_extensions:
-                if not any(part.startswith(".") for part in f.relative_to(path).parts):
-                    files.append(f)
-        return files
+    def _normalize_prefix(self, path: Path | str) -> str:
+        """Convert a Path or string to a relative prefix suitable for storage.walk()."""
+        p = Path(path)
+        if hasattr(self.storage, "root"):
+            root = Path(self.storage.root).resolve()
+            resolved = p.resolve()
+            if resolved.is_relative_to(root):
+                rel = str(resolved.relative_to(root))
+                return rel + "/" if not rel.endswith("/") else rel
+        # Already a relative string prefix
+        s = str(path)
+        return s if s.endswith("/") else s + "/"

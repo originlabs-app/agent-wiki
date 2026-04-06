@@ -53,6 +53,26 @@ def test_mtime(tmp_path):
     assert mtime > 0
 
 
+def test_walk(tmp_path):
+    s = LocalStorage(root=tmp_path)
+    s.write("src/auth.py", "# auth")
+    s.write("src/db.py", "# db")
+    s.write("src/nested/deep.py", "# deep")
+    s.write("docs/readme.md", "# readme")
+    s.write("docs/.hidden/secret.md", "# hidden")
+    # Walk all .py files under src/
+    results = s.walk("src/", suffixes={".py"})
+    assert sorted(results) == ["src/auth.py", "src/db.py", "src/nested/deep.py"]
+    # Walk .md files, skip dotfiles
+    results = s.walk("docs/", suffixes={".md"})
+    assert results == ["docs/readme.md"]  # .hidden/ skipped
+
+
+def test_walk_nonexistent_dir(tmp_path):
+    s = LocalStorage(root=tmp_path)
+    assert s.walk("nope/", suffixes={".py"}) == []
+
+
 def test_path_traversal_blocked(tmp_path):
     import pytest
     s = LocalStorage(root=tmp_path)

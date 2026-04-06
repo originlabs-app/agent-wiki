@@ -17,6 +17,7 @@ class StorageBackend(Protocol):
     def exists(self, path: str) -> bool: ...
     def mtime(self, path: str) -> float: ...
     def hash(self, path: str) -> str | None: ...
+    def walk(self, prefix: str, suffixes: set[str] | None = None) -> list[str]: ...
 
 
 class LocalStorage:
@@ -72,3 +73,21 @@ class LocalStorage:
         if not p.is_file():
             return None
         return hashlib.sha256(p.read_bytes()).hexdigest()
+
+    def walk(self, prefix: str, suffixes: set[str] | None = None) -> list[str]:
+        """Recursively list files under prefix, filtering by suffix. Skips dotfile directories."""
+        d = self._resolve(prefix)
+        if not d.is_dir():
+            return []
+        results = []
+        for f in sorted(d.rglob("*")):
+            if not f.is_file():
+                continue
+            # Skip dotfile directories
+            rel = f.relative_to(d)
+            if any(part.startswith(".") for part in rel.parts):
+                continue
+            if suffixes and f.suffix.lower() not in suffixes:
+                continue
+            results.append(f"{prefix}{rel}")
+        return results
