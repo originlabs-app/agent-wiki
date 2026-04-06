@@ -9,6 +9,8 @@
 node_modules/
 dist/
 coverage/
+__pycache__/
+*.pyc
 
 # Sensitive source material
 raw/untracked/*
