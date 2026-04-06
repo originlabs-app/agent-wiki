@@ -175,14 +175,37 @@ Where to append it:
 
 If the file already contains "## Agent Wiki", skip — it's already installed.
 
-## Step 7: Personalize
+## Step 7: Conventions to know
+
+Briefly explain these conventions to the user:
+
+**Filename conventions:**
+- Sources and decisions are date-prefixed: `2026-04-06-my-source.md`
+- Concepts and projects are NOT date-prefixed: `my-concept.md` — they're timeless
+
+**Frontmatter conventions:**
+- Every page has YAML frontmatter with `type:` and `title:`
+- Sources/decisions have `date:` and `project:`
+- Concepts have `updated:`, `updated_by:`, `tags:`, `description:` — no `date:` or `project:`
+- All pages have `confidence: high | medium | low`
+- Templates in each `wiki/*/` directory show the exact schema
+
+**Skill conventions (`~/.agents/skills/`):**
+- Skills are installed once in `~/.agents/skills/` (the source of truth)
+- Symlinked into each agent's skill directory (`~/.claude/skills/`, `~/.cursor/skills/`, `~/.hermes/skills/`)
+- Codex and GitHub Copilot scan `~/.agents/skills/` natively — no symlinks needed
+- See https://agentskills.io for the full specification
+
+"Full schema is in AGENTS.md — agents read it automatically."
+
+## Step 8: Personalize
 
 Based on Question 3 (use case), personalize the `## What This Is` section in AGENTS.md. Replace the placeholder with a concrete 2-3 sentence description.
 
 If they said "software development", suggest creating an initial project page:
 "Want me to create a wiki page for a current project? Give me the name."
 
-## Step 8: Clean up the wiki folder
+## Step 9: Clean up the wiki folder
 
 Now that skills and wikictl are installed on the machine, remove the tool files from the wiki folder. The user's wiki should only contain their content.
 
@@ -206,7 +229,7 @@ What stays:
 
 AGENTS.md stays because it's the schema — agents read it to know the rules.
 
-## Step 9: Verify and report
+## Step 10: Verify and report
 
 ```bash
 wikictl status

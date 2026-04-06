@@ -549,6 +549,10 @@ extract_summary() {
     )"
   fi
   if [[ -z "$summary" ]]; then
+    # Fallback: use frontmatter description field
+    summary="$(frontmatter_value "$file" description || true)"
+  fi
+  if [[ -z "$summary" ]]; then
     summary="See page"
   fi
   printf '%s' "$summary"
@@ -777,7 +781,8 @@ rebuild_index() {
 
     while IFS= read -r file; do
       local dec_title dec_date dec_summary dec_link
-      dec_title="$(frontmatter_value "$file" decision || true)"
+      dec_title="$(frontmatter_value "$file" title || true)"
+      [[ -n "$dec_title" ]] || dec_title="$(frontmatter_value "$file" decision || true)"
       dec_date="$(frontmatter_value "$file" date || true)"
       [[ -n "$dec_title" ]] || dec_title="$(basename "$file" .md)"
       [[ -n "$dec_date" ]] || dec_date="$(today)"
@@ -795,7 +800,8 @@ rebuild_index() {
 
     while IFS= read -r file; do
       local con_title con_updated con_summary con_link
-      con_title="$(frontmatter_value "$file" concept || true)"
+      con_title="$(frontmatter_value "$file" title || true)"
+      [[ -n "$con_title" ]] || con_title="$(frontmatter_value "$file" concept || true)"
       con_updated="$(frontmatter_value "$file" updated || true)"
       [[ -n "$con_title" ]] || con_title="$(basename "$file" .md)"
       [[ -n "$con_updated" ]] || con_updated="$(today)"
@@ -1050,31 +1056,81 @@ cmd_file_back() {
 
   local slug filename target_dir target_file wiki_type
   slug="$(slugify "$title")"
-  filename="$(today)-${slug}.md"
 
   case "$page_type" in
-    source)   target_dir="$WIKI/sources";   wiki_type="wiki-source" ;;
-    decision) target_dir="$WIKI/decisions";  wiki_type="wiki-decision" ;;
-    concept)  target_dir="$WIKI/concepts";   wiki_type="wiki-concept" ;;
+    source)   target_dir="$WIKI/sources";   wiki_type="wiki-source";   filename="$(today)-${slug}.md" ;;
+    decision) target_dir="$WIKI/decisions";  wiki_type="wiki-decision"; filename="$(today)-${slug}.md" ;;
+    concept)  target_dir="$WIKI/concepts";   wiki_type="wiki-concept";  filename="${slug}.md" ;;
   esac
 
   target_file="$target_dir/$filename"
   mkdir -p "$target_dir"
 
   # Read content from stdin if available, otherwise create a stub
-  local body=""
+  local body="" stdin_fm=""
   if [[ ! -t 0 ]]; then
     body="$(cat)"
+    # Extract and strip frontmatter from stdin if present
+    if [[ "$body" == ---* ]]; then
+      stdin_fm="$(printf '%s\n' "$body" | awk '
+        NR == 1 && $0 == "---" { in_fm = 1; next }
+        in_fm && $0 == "---" { exit }
+        in_fm { print }
+      ')"
+      body="$(printf '%s\n' "$body" | awk '
+        NR == 1 && $0 == "---" { in_fm = 1; next }
+        in_fm && $0 == "---" { in_fm = 0; next }
+        in_fm { next }
+        { print }
+      ')"
+      # Strip leading H1 from body (file-back adds its own)
+      body="$(printf '%s\n' "$body" | awk '
+        !stripped && /^[[:space:]]*$/ { next }
+        !stripped && /^# / { stripped = 1; next }
+        { stripped = 1; print }
+      ')"
+    fi
   fi
+
+  # Helper: get a value from stdin frontmatter, or use a default
+  _fm_or_default() {
+    local key="$1" default="$2"
+    local val=""
+    if [[ -n "$stdin_fm" ]]; then
+      val="$(printf '%s\n' "$stdin_fm" | awk -v k="$key" '$0 ~ "^"k":" { sub("^"k":[[:space:]]*",""); gsub(/^"/,""); gsub(/"$/,""); print; exit }')"
+    fi
+    printf '%s' "${val:-$default}"
+  }
+
+  # Build frontmatter — merge stdin fields with defaults per type
+  local fm_confidence fm_tags fm_description
+  fm_confidence="$(_fm_or_default confidence medium)"
+  fm_tags="$(_fm_or_default tags "")"
+  fm_description="$(_fm_or_default description "")"
 
   {
     echo "---"
     echo "type: $wiki_type"
     echo "title: \"$title\""
-    echo "date: $(today)"
-    echo "project: $project"
-    echo "status: active"
-    echo "confidence: medium"
+    case "$page_type" in
+      source)
+        echo "date: $(today)"
+        echo "project: $project"
+        echo "status: active"
+        ;;
+      decision)
+        echo "date: $(today)"
+        echo "project: $project"
+        echo "status: active"
+        ;;
+      concept)
+        echo "updated: $(today)"
+        echo "updated_by: ${WIKI_AGENT:-agent}"
+        ;;
+    esac
+    echo "confidence: $fm_confidence"
+    [[ -n "$fm_tags" ]] && echo "tags: $fm_tags"
+    [[ -n "$fm_description" ]] && echo "description: \"$fm_description\""
     echo "---"
     echo
     echo "# $title"

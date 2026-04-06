@@ -1,14 +1,14 @@
 ---
 type: wiki-decision
-decision: ""
+title: "Decision Title"
 date: YYYY-MM-DD
+project: project-name
 status: active | superseded | reversed
 decided-by: ""
-project: ""
 confidence: medium
 ---
 
-# {Decision Title}
+# Decision Title
 
 ## Context
 
@@ -31,5 +31,5 @@ What changes as a result.
 
 ## Sources
 
-- [[wiki/sources/{source}]]
-- [[wiki/projects/{project}]]
+- [[wiki/sources/source-name]]
+- [[wiki/projects/project-name]]

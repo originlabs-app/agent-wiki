@@ -1,15 +1,19 @@
 ---
 type: wiki-source
-source-type: article | transcript | brief | meeting | report
-title: ""
+title: "Source Title"
 date: YYYY-MM-DD
-ingested-by: agent
-project: ""
+project: project-name
+source-type: article | transcript | brief | meeting | report
 raw-path: ""
+ingested-by: agent
 confidence: medium
 ---
 
-# {Title}
+# Source Title
+
+## Summary
+
+One-paragraph summary.
 
 ## Key takeaways
 
@@ -25,8 +29,8 @@ confidence: medium
 
 ## Contradictions with existing wiki
 
-- None detected / {describe contradiction}
+- None detected
 
 ## Raw source
 
-- [[raw/{path}]]
+- [[raw/path]]

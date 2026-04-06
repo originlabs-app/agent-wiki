@@ -2,7 +2,7 @@
 type: wiki-page
 project: ProjectName
 status: active
-updated: 2026-04-05
+updated: YYYY-MM-DD
 updated_by: agent
 repo: ""
 confidence: medium
@@ -32,5 +32,4 @@ One-paragraph summary.
 
 ## Sources
 
-- [[path/to/source]]
-
+- [[raw/path]]

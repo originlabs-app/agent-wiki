@@ -1,30 +1,23 @@
 ---
 type: wiki-concept
-concept: ConceptName
-status: active
+title: "Concept Name"
 updated: YYYY-MM-DD
 updated_by: agent
 confidence: medium
+tags: [tag1, tag2]
+description: "One-sentence summary for the index."
 ---
 
-# ConceptName
+# Concept Name
 
-## Summary
-
-One-paragraph concept summary.
+One-paragraph summary expanding on the description.
 
 ## Key ideas
 
 - 
 
-## Related sources
+## Related
 
 - [[wiki/sources/source-name]]
-
-## Related projects
-
 - [[wiki/projects/project-name]]
-
-## Related decisions
-
 - [[wiki/decisions/decision-name]]
