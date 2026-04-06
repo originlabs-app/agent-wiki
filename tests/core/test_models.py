@@ -1,4 +1,9 @@
-from atlas.core.models import Node, Edge, Extraction, Page, Subgraph, GraphStats, AuditReport, WikiSuggestion, GraphChange, LinkSuggestion
+import pytest
+from atlas.core.models import (
+    Node, Edge, Extraction, Page, Subgraph, GraphStats, AuditReport,
+    WikiSuggestion, GraphChange, LinkSuggestion,
+    NodeType, Confidence, EdgeConfidence,
+)
 
 
 def test_node_creation():
@@ -75,6 +80,32 @@ def test_subgraph_token_count():
     edges = [Edge(source="a", target="b", relation="calls", confidence="EXTRACTED")]
     sg = Subgraph(nodes=nodes, edges=edges)
     assert sg.estimated_tokens > 0
+
+
+def test_strenum_node_type():
+    assert NodeType.CODE == "code"
+    assert NodeType.DOCUMENT == "document"
+    assert NodeType("wiki-concept") == NodeType.WIKI_CONCEPT
+    # StrEnum values work as plain strings
+    node = Node(id="a", label="A", type=NodeType.CODE, source_file="a.py")
+    assert node.type == "code"
+
+
+def test_strenum_confidence():
+    assert Confidence.HIGH == "high"
+    assert Confidence("medium") == Confidence.MEDIUM
+
+
+def test_strenum_edge_confidence():
+    assert EdgeConfidence.EXTRACTED == "EXTRACTED"
+    assert EdgeConfidence.INFERRED == "INFERRED"
+    edge = Edge(source="a", target="b", relation="imports", confidence=EdgeConfidence.EXTRACTED)
+    assert edge.confidence_score == 1.0
+
+
+def test_invalid_edge_confidence_raises():
+    with pytest.raises(ValueError):
+        EdgeConfidence("INVALID")
 
 
 def test_graph_stats():

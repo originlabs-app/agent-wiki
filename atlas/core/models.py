@@ -3,6 +3,33 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from enum import StrEnum
+
+
+class NodeType(StrEnum):
+    """Valid node types in the knowledge graph."""
+    CODE = "code"
+    DOCUMENT = "document"
+    PAPER = "paper"
+    IMAGE = "image"
+    WIKI_PAGE = "wiki-page"
+    WIKI_CONCEPT = "wiki-concept"
+    WIKI_DECISION = "wiki-decision"
+    WIKI_SOURCE = "wiki-source"
+
+
+class Confidence(StrEnum):
+    """Confidence levels for nodes and pages."""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class EdgeConfidence(StrEnum):
+    """Confidence levels for edges."""
+    EXTRACTED = "EXTRACTED"
+    INFERRED = "INFERRED"
+    AMBIGUOUS = "AMBIGUOUS"
 
 
 @dataclass
