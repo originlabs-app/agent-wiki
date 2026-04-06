@@ -5,8 +5,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from atlas.server.middleware import add_middleware, AtlasNotFoundError, AtlasValidationError
+
+DASHBOARD_DIR = Path(__file__).parent.parent / "dashboard"
 from atlas.server.schemas import (
     AuditResponse,
     ErrorResponse,
@@ -303,6 +307,14 @@ def create_app(
         engines.load_graph()
         # Sync wiki state to graph to catch any changes made while server was down
         engines.linker.sync_wiki_to_graph()
+
+    # --- Dashboard serving ---
+    if DASHBOARD_DIR.is_dir():
+        app.mount("/dashboard", StaticFiles(directory=DASHBOARD_DIR), name="dashboard")
+
+        @app.get("/")
+        async def root():
+            return FileResponse(DASHBOARD_DIR / "index.html")
 
     return app
 
