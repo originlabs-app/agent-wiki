@@ -15,6 +15,15 @@ _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 _WIKI_DIRS = ["wiki/projects/", "wiki/concepts/", "wiki/decisions/", "wiki/sources/"]
 
 
+def serialize_frontmatter(frontmatter: dict, content: str) -> str:
+    """Serialize frontmatter + content into a markdown string with YAML header.
+
+    Single source of truth for frontmatter serialization. Used by WikiEngine and IngestEngine.
+    """
+    fm_str = yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True, sort_keys=False).strip()
+    return f"---\n{fm_str}\n---\n\n{content}\n"
+
+
 class WikiEngine:
     """Read, write, search wiki pages through a StorageBackend."""
 
@@ -32,8 +41,7 @@ class WikiEngine:
 
     def write(self, path: str, content: str, frontmatter: dict | None = None) -> None:
         if frontmatter:
-            fm_str = yaml.dump(frontmatter, default_flow_style=False, allow_unicode=True, sort_keys=False).strip()
-            full = f"---\n{fm_str}\n---\n\n{content}\n"
+            full = serialize_frontmatter(frontmatter, content)
         else:
             full = content
         self.storage.write(path, full)

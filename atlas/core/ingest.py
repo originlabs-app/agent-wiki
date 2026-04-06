@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+from atlas.core.wiki import serialize_frontmatter
+
 if TYPE_CHECKING:
     from atlas.core.storage import StorageBackend
 
@@ -73,8 +75,8 @@ class IngestEngine:
 
         # Add frontmatter if not present
         if not content.startswith("---"):
-            fm = f'---\ntitle: "{title or slug}"\ncaptured_at: {datetime.now(timezone.utc).isoformat()}\n---\n\n'
-            content = fm + content
+            fm = {"title": title or slug, "captured_at": datetime.now(timezone.utc).isoformat()}
+            content = serialize_frontmatter(fm, content).rstrip("\n")
 
         self.storage.write(dest_path, content)
         return dest_path
@@ -100,11 +102,7 @@ class IngestEngine:
 
         text = resp.text
         fm = build_frontmatter(url=url, url_type=url_type, title=title, author=author)
-        fm_lines = ["---"]
-        for k, v in fm.items():
-            fm_lines.append(f'{k}: "{v}"' if isinstance(v, str) else f"{k}: {v}")
-        fm_lines.append("---\n")
-        full = "\n".join(fm_lines) + "\n" + text
+        full = serialize_frontmatter(fm, text)
 
         self.storage.write(dest_path, full)
         return dest_path
