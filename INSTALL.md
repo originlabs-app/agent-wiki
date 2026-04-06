@@ -7,7 +7,8 @@ Source repo: https://github.com/originlabs-app/agent-wiki
 ## Rules
 
 - **NEVER overwrite or delete** any existing config file
-- When adding to an existing file, **append a small section** — don't replace the file
+- When adding to an existing file, **append the exact text shown** — don't rephrase, don't summarize, don't rewrite
+- **Copy skill files exactly as-is** — use `cp -r`, not manual rewriting
 - **Ask before doing** — confirm with the user before modifying anything outside this repo
 - Be concise. Don't explain the architecture. Just get it working.
 
@@ -147,11 +148,9 @@ fi
 
 ## Step 6: Add wiki awareness to existing configs
 
-For each selected agent, **append** a small section to their global config. Never replace the file.
+For each selected agent, **append** the following section to their global config. Copy it EXACTLY as shown — only replace `[wiki-path]` with the actual path from Step 2. Never replace or rewrite the existing file.
 
-### Claude Code (~/.claude/CLAUDE.md)
-
-If the file exists, append:
+The text to append (same for all agents):
 
 ```markdown
 
@@ -159,22 +158,17 @@ If the file exists, append:
 
 agent-wiki is available as a shared knowledge base.
 Use /agent-wiki-start at the beginning of a session and /agent-wiki-finish at the end.
-Wiki location: [path to wiki]
+Wiki location: [wiki-path]
 ```
 
-### Codex (~/.codex/AGENTS.md or ~/.agents/AGENTS.md)
+Where to append it:
 
-If the file exists, append the same short section.
+- **Claude Code**: `~/.claude/CLAUDE.md` (if the file exists)
+- **Codex**: `~/.codex/AGENTS.md` or `~/.agents/AGENTS.md` (if either exists)
+- **Hermes**: Ask the user first: "Do you want me to add a note about agent-wiki to your Hermes profiles?" If yes, append to each profile's SOUL.md (e.g., `~/.hermes/profiles/*/SOUL.md`)
+- **Cursor**: If `~/.cursor/rules/` exists, create a new file `~/.cursor/rules/agent-wiki.md` with the text above. Do not modify other rule files.
 
-### Hermes (SOUL.md per profile)
-
-Ask: "Do you want me to add a note about agent-wiki to your Hermes profiles?"
-
-If yes, find each profile's SOUL.md and append the same section.
-
-### Cursor
-
-If ~/.cursor/rules/ exists, add a small rule file. Otherwise skip.
+If the file already contains "## Agent Wiki", skip — it's already installed.
 
 ## Step 7: Personalize
 
