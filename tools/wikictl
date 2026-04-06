@@ -78,10 +78,10 @@ search_content() {
       esac
     done
     local pattern_args=()
-    for p in "${patterns[@]}"; do
+    for p in ${patterns[@]+"${patterns[@]}"}; do
       pattern_args+=(-e "$p")
     done
-    grep -r "${grep_args[@]}" "${pattern_args[@]}" --include='*.md' "$dir"
+    grep -r ${grep_args[@]+"${grep_args[@]}"} ${pattern_args[@]+"${pattern_args[@]}"} --include='*.md' "$dir"
   fi
 }
 
@@ -1134,13 +1134,13 @@ cmd_compile() {
     proj_slug="$(slugify "$project")"
     local already=0
     local p
-    for p in "${projects_touched[@]}"; do
+    for p in ${projects_touched[@]+"${projects_touched[@]}"}; do
       [[ "$p" == "$proj_slug" ]] && { already=1; break; }
     done
     [[ $already -eq 1 ]] || projects_touched+=("$proj_slug")
   done
 
-  echo "compiled: $count source(s). Project pages updated: ${projects_touched[*]}"
+  echo "compiled: $count source(s). Project pages updated: ${projects_touched[*]+${projects_touched[*]}}"
 }
 
 cmd_paths() {

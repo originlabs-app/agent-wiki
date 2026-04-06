@@ -57,7 +57,7 @@ Based on tensions observed. Always hypothesize before asking:
 - Bad: "What do you want to do?"
 - Good: "The wiki lists 3 next steps. The most recent commit touched the auth module. Are we continuing auth work, or switching to something else?"
 
-### 5. Connect the user's intent to the wiki
+## 5. Connect the user's intent to the wiki
 
 When the user says what they want to work on, cross-reference it with the wiki:
 
@@ -67,11 +67,11 @@ When the user says what they want to work on, cross-reference it with the wiki:
 
 The goal: everything the user says gets matched against what the wiki knows. The wiki is the memory — use it.
 
-### 6. Propose a short session plan
+## 6. Propose a short session plan
 
 2-4 concrete steps based on the answers.
 
-## 6. Multi-step deep queries
+## 7. Multi-step deep queries
 
 When answering complex questions against the wiki, use multi-step retrieval:
 1. Read wiki/index.md — understand what topics exist

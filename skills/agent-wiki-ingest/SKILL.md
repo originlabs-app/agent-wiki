@@ -113,6 +113,14 @@ The skill uses these wikictl commands behind the scenes:
 - `wikictl sync <agent> <op> "<desc>"` — log + lint + status
 - `wikictl file-back <project> "<title>" [--type source|decision|concept]` — create wiki page + update index + log
 
+## Wiki as memory — always search it
+
+Before ingesting, check if the wiki already has content about this topic. The source might update, contradict, or enrich existing pages.
+
+- If the wiki already has a concept page on this topic, update it rather than creating a new one.
+- If the source contradicts existing wiki content, flag it in the socratic questions.
+- If the wiki has nothing on this topic, note it: "This is new to the wiki."
+
 ## Rules
 
 1. Always observe before asking. Never ask what you can infer.
