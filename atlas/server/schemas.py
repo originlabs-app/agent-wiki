@@ -114,9 +114,14 @@ class ScanRequest(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    question: str
+    question: str = ""
+    start: str = ""  # alias used by dashboard
     mode: str = "bfs"
     depth: int = 3
+
+    @property
+    def effective_question(self) -> str:
+        return self.question or self.start
 
 
 class PathRequest(BaseModel):
@@ -230,6 +235,31 @@ class SuggestLinksResponse(BaseModel):
 class IngestResponse(BaseModel):
     path: str | None
     message: str = "Ingested"
+
+
+class FileTreeNode(BaseModel):
+    """A node in the file tree (file or directory)."""
+    path: str
+    name: str
+    type: str  # "directory" | node type (code, document, etc.)
+    degree: int = 0
+    children: list["FileTreeNode"] | None = None  # None for files, list for dirs
+
+
+class CommunitySchema(BaseModel):
+    """A detected community cluster."""
+    id: int
+    label: str
+    size: int
+    cohesion: float = 0.0
+    members: list[str] = Field(default_factory=list)
+
+
+class FileReadResponse(BaseModel):
+    """Raw file content response."""
+    path: str
+    content: str
+    type: str  # guessed file type
 
 
 class ErrorResponse(BaseModel):

@@ -5,8 +5,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from atlas.server.middleware import add_middleware, AtlasNotFoundError, AtlasValidationError
+
+DASHBOARD_DIR = Path(__file__).parent.parent / "dashboard"
 from atlas.server.schemas import (
     AuditResponse,
     ErrorResponse,
@@ -38,6 +42,9 @@ from atlas.server.schemas import (
     WikiWriteRequest,
     WikiWriteResponse,
     LinkSuggestionSchema,
+    FileTreeNode,
+    CommunitySchema,
+    FileReadResponse,
 )
 
 if TYPE_CHECKING:
@@ -126,11 +133,24 @@ def create_app(
             health_score=s.health_score,
         ))
 
+    # --- Graph (full dump for dashboard) ---
+
+    @app.get("/api/graph")
+    def get_graph():
+        """Return all nodes and edges for the dashboard visualization."""
+        all_nodes = [NodeSchema.from_core(engines.graph.get_node(nid)) for nid in engines.graph.iter_node_ids()]
+        all_edges = []
+        for u, v in engines.graph.iter_edges(data=False):
+            d = engines.graph.get_edge_data(u, v)
+            all_edges.append(EdgeSchema(source=u, target=v, type=d.get("type", "calls"), confidence=d.get("confidence", "INFERRED"), relation=d.get("type", "calls"), weight=d.get("weight", 1.0)))
+        return {"nodes": all_nodes, "edges": all_edges}
+
     # --- Query ---
 
     @app.post("/api/query", response_model=QueryResponse)
+    @app.post("/api/graph/query", response_model=QueryResponse, include_in_schema=False)
     def query(req: QueryRequest):
-        subgraph = engines.graph.query(req.question, mode=req.mode, depth=req.depth)
+        subgraph = engines.graph.query(req.effective_question, mode=req.mode, depth=req.depth)
         return QueryResponse(
             nodes=[NodeSchema.from_core(n) for n in subgraph.nodes],
             edges=[EdgeSchema.from_core(e) for e in subgraph.edges],
@@ -224,6 +244,42 @@ def create_app(
         results = engines.wiki.search(req.terms)
         return WikiSearchResponse(results=[PageSchema.from_core(p) for p in results])
 
+    @app.get("/api/wiki/search")
+    def wiki_search_get(q: str = ""):
+        """GET variant for dashboard — searches wiki pages by query string.
+        Returns array directly (dashboard expects raw array, not {results: []})."""
+        if not q:
+            return []
+        results = engines.wiki.search(q)
+        return [PageSchema.from_core(p).model_dump() for p in results]
+
+    @app.get("/api/wiki/pages")
+    def wiki_pages(type: str | None = None):
+        """List all wiki pages, optionally filtered by type. Returns array directly."""
+        pages = engines.wiki.list_pages(type=type)
+        return [PageSchema.from_core(p).model_dump() for p in pages]
+
+    @app.get("/api/log")
+    def get_log(limit: int = 50, offset: int = 0):
+        """Read the wiki operation log. Returns array directly for dashboard compatibility."""
+        log_content = engines.storage.read("wiki/log.md")
+        if log_content is None:
+            return []
+        # Parse log entries (format: [YYYY-MM-DD] agent | op | description)
+        import re
+        entries = []
+        for line in log_content.splitlines():
+            m = re.match(r"\[(\d{4}-\d{2}-\d{2})\]\s+(\S+)\s+\|\s+(\S+)\s+\|\s+(.*)", line)
+            if m:
+                entries.append({
+                    "date": m.group(1),
+                    "agent": m.group(2),
+                    "operation": m.group(3),
+                    "description": m.group(4).strip(),
+                })
+        entries.reverse()  # newest first
+        return entries[offset:offset + limit]
+
     # --- Audit ---
 
     @app.get("/api/audit", response_model=AuditResponse)
@@ -257,6 +313,158 @@ def create_app(
             stats=stats_schema,
             health_score=report.health_score,
         )
+
+    # --- Explorer: Files ---
+
+    @app.get("/api/files", response_model=list[FileTreeNode])
+    def get_files():
+        """Return the scanned file tree with degree counts.
+
+        Builds a hierarchical tree from all graph nodes that have a source_file.
+        Each file node includes its degree (connection count) from the graph.
+        """
+        # Collect all unique source files from graph nodes
+        file_set: dict[str, dict] = {}  # path -> {type, degree}
+        for nid in engines.graph.iter_node_ids():
+            data = engines.graph.get_node_data(nid)
+            sf = data.get("source_file", "")
+            if not sf:
+                continue
+            node_type = data.get("type", "unknown")
+            degree = engines.graph.degree(nid)
+            # Keep highest degree if multiple nodes map to same file
+            if sf not in file_set or degree > file_set[sf]["degree"]:
+                file_set[sf] = {"type": node_type, "degree": degree}
+
+        # Build tree structure
+        tree: dict = {}  # nested dict: {name: {__children__: {...}, __meta__: ...}}
+        for path, meta in sorted(file_set.items()):
+            parts = path.split("/")
+            current = tree
+            for i, part in enumerate(parts):
+                if part not in current:
+                    current[part] = {"__children__": {}, "__meta__": None}
+                if i == len(parts) - 1:
+                    # Leaf file
+                    current[part]["__meta__"] = {
+                        "path": path,
+                        "type": meta["type"],
+                        "degree": meta["degree"],
+                    }
+                current = current[part]["__children__"]
+
+        def to_tree_nodes(subtree: dict, prefix: str = "") -> list[dict]:
+            nodes = []
+            for name, entry in sorted(subtree.items()):
+                full_path = f"{prefix}{name}" if not prefix else f"{prefix}/{name}"
+                meta = entry["__meta__"]
+                children_dict = entry["__children__"]
+
+                if children_dict:
+                    # Directory
+                    children = to_tree_nodes(children_dict, full_path)
+                    # Sum degrees of all children for the directory
+                    total_degree = sum(c.get("degree", 0) for c in children)
+                    nodes.append({
+                        "path": full_path,
+                        "name": name,
+                        "type": "directory",
+                        "degree": total_degree,
+                        "children": children,
+                    })
+                elif meta:
+                    # File
+                    nodes.append({
+                        "path": meta["path"],
+                        "name": name,
+                        "type": meta["type"],
+                        "degree": meta["degree"],
+                        "children": None,
+                    })
+            return nodes
+
+        return to_tree_nodes(tree)
+
+    # --- Explorer: Communities ---
+
+    @app.get("/api/communities", response_model=list[CommunitySchema])
+    def get_communities():
+        """Return detected communities with labels, sizes, cohesion scores.
+
+        Groups nodes by their `community` attribute, computes internal edge
+        density (cohesion), and labels each community by its highest-degree
+        member node's label.
+        """
+        # Group nodes by community
+        communities: dict[int, list[str]] = {}
+        for nid in engines.graph.iter_node_ids():
+            data = engines.graph.get_node_data(nid)
+            comm = data.get("community")
+            if comm is not None:
+                communities.setdefault(comm, []).append(nid)
+
+        result = []
+        for comm_id, members in sorted(communities.items()):
+            member_set = set(members)
+            # Count internal edges
+            internal_edges = 0
+            for u, v in engines.graph.iter_edges(data=False):
+                if u in member_set and v in member_set:
+                    internal_edges += 1
+
+            # Cohesion = internal edges / max possible edges
+            n = len(members)
+            max_edges = n * (n - 1) if n > 1 else 1
+            cohesion = round(internal_edges / max_edges, 2) if max_edges > 0 else 0.0
+
+            # Label = highest-degree member's label
+            best_member = max(members, key=lambda m: engines.graph.degree(m))
+            best_data = engines.graph.get_node_data(best_member)
+            label = best_data.get("label", best_member)
+
+            result.append(CommunitySchema(
+                id=comm_id,
+                label=label,
+                size=n,
+                cohesion=cohesion,
+                members=members,
+            ))
+
+        # Sort by size descending
+        result.sort(key=lambda c: -c.size)
+        return result
+
+    # --- Explorer: File Read ---
+
+    @app.get("/api/file/read", response_model=FileReadResponse)
+    def read_file(path: str):
+        """Read raw content of a scanned file (non-wiki files).
+
+        Uses the storage backend, so path traversal is blocked.
+        """
+        try:
+            content = engines.storage.read(path)
+        except ValueError:
+            # Path traversal blocked
+            raise AtlasValidationError(f"Invalid path: {path}")
+
+        if content is None:
+            raise AtlasNotFoundError(f"File not found: {path}")
+
+        # Guess type from extension
+        ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
+        type_map = {
+            "py": "code", "js": "code", "ts": "code", "rs": "code",
+            "go": "code", "java": "code", "rb": "code", "c": "code",
+            "cpp": "code", "h": "code", "sh": "code", "yaml": "code",
+            "yml": "code", "toml": "code", "json": "code",
+            "md": "document", "txt": "document", "rst": "document",
+            "pdf": "paper", "png": "image", "jpg": "image",
+            "jpeg": "image", "gif": "image", "svg": "image",
+        }
+        file_type = type_map.get(ext, "unknown")
+
+        return FileReadResponse(path=path, content=content, type=file_type)
 
     # --- Suggest Links ---
 
@@ -303,6 +511,14 @@ def create_app(
         engines.load_graph()
         # Sync wiki state to graph to catch any changes made while server was down
         engines.linker.sync_wiki_to_graph()
+
+    # --- Dashboard serving ---
+    if DASHBOARD_DIR.is_dir():
+        app.mount("/dashboard", StaticFiles(directory=DASHBOARD_DIR), name="dashboard")
+
+        @app.get("/")
+        async def root():
+            return FileResponse(DASHBOARD_DIR / "index.html")
 
     return app
 

@@ -166,8 +166,8 @@ class GraphEngine:
         visited_edge_keys: set[tuple[str, str]] = set()
         visited_edges: list[Edge] = []
 
-        # Use undirected view for traversal (follow edges in both directions)
-        undirected = self._g.to_undirected(as_view=True)
+        # Use undirected COPY (not view) to avoid mutating the original graph
+        undirected = self._g.to_undirected(as_view=False)
 
         if mode == "bfs":
             queue = deque([(start, 0)])
@@ -220,9 +220,9 @@ class GraphEngine:
     def path(self, source: str, target: str) -> list[Edge] | None:
         if source not in self._g or target not in self._g:
             return None
+        # Use undirected COPY (not view) to avoid mutating the original graph
+        undirected = self._g.to_undirected(as_view=False)
         try:
-            # Use undirected view for pathfinding
-            undirected = self._g.to_undirected(as_view=True)
             node_path = nx.shortest_path(undirected, source, target)
         except nx.NetworkXNoPath:
             return None
@@ -265,6 +265,10 @@ class GraphEngine:
             confidence_breakdown=breakdown,
         )
 
+    def to_dict(self) -> dict:
+        """Return the graph as a JSON-serializable dict."""
+        return nx.node_link_data(self._g)
+
     def save(self, path: Path | str) -> None:
         path = Path(path)
         data = nx.node_link_data(self._g)
@@ -273,7 +277,19 @@ class GraphEngine:
     @classmethod
     def load(cls, path: Path | str) -> GraphEngine:
         path = Path(path)
-        data = json.loads(path.read_text(encoding="utf-8"))
-        engine = cls()
-        engine._g = nx.node_link_graph(data, directed=True)
-        return engine
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as e:
+            logger.error("Failed to load graph from %s: %s", path, e)
+            raise ValueError(f"Invalid graph.json: {e}") from e
+        # Validate structure before passing to NetworkX
+        # node_link_graph expects: directed, multigraph, graph, nodes, edges
+        if not isinstance(data, dict) or "nodes" not in data or "edges" not in data:
+            raise ValueError(f"graph.json missing required keys: expected {{'nodes', 'edges', ...}}, got keys={list(data.keys()) if isinstance(data, dict) else type(data).__name__}")
+        try:
+            engine = cls()
+            engine._g = nx.node_link_graph(data, directed=True)
+            return engine
+        except Exception as e:
+            logger.error("Failed to build graph from %s: %s", path, e)
+            raise ValueError(f"Invalid graph structure: {e}") from e

@@ -31,10 +31,11 @@ class EngineSet:
 
     @property
     def graph_path(self) -> Path:
-        return self.root / "wiki" / "graph.json"
+        return self.root / "atlas-out" / "graph.json"
 
     def save_graph(self) -> None:
         """Persist the in-memory graph to disk."""
+        self.graph_path.parent.mkdir(parents=True, exist_ok=True)
         self.graph.save(self.graph_path)
 
     def load_graph(self) -> None:
