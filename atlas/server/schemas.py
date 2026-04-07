@@ -274,3 +274,60 @@ class FileReadResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: str | None = None
+
+
+# --- Project management ---
+
+
+class ProjectEntrySchema(BaseModel):
+    path: str
+    name: str
+    last_opened: str = ""
+    nodes: int = 0
+    edges: int = 0
+    communities: int = 0
+    health: float = 0.0
+
+    @classmethod
+    def from_registry(cls, entry) -> ProjectEntrySchema:
+        """Convert atlas.core.registry.ProjectEntry to schema."""
+        return cls(
+            path=entry.path,
+            name=entry.name,
+            last_opened=entry.last_opened,
+            nodes=entry.nodes,
+            edges=entry.edges,
+            communities=entry.communities,
+            health=entry.health,
+        )
+
+
+class ProjectOpenRequest(BaseModel):
+    path: str
+
+
+class ProjectOpenResponse(BaseModel):
+    project: ProjectEntrySchema
+    scanned: bool = False
+
+
+class ProjectSwitchRequest(BaseModel):
+    path: str
+
+
+class ProjectSwitchResponse(BaseModel):
+    project: ProjectEntrySchema
+
+
+class ProjectRemoveResponse(BaseModel):
+    removed: bool
+
+
+class ProjectListResponse(BaseModel):
+    projects: list[ProjectEntrySchema] = Field(default_factory=list)
+
+
+class ScanStatusResponse(BaseModel):
+    active: bool = False
+    progress: float = 0.0
+    message: str = "Idle"
