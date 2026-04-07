@@ -45,6 +45,9 @@ from atlas.server.schemas import (
     FileTreeNode,
     CommunitySchema,
     FileReadResponse,
+    ProjectEntrySchema,
+    ProjectOpenRequest,
+    ProjectSwitchRequest,
 )
 
 if TYPE_CHECKING:
@@ -55,13 +58,16 @@ def create_app(
     engines: EngineSet | None = None,
     event_bus: EventBus | None = None,
     root: Path | str | None = None,
+    registry: "ProjectRegistry | None" = None,
+    scan_status: "ScanStatus | None" = None,
 ) -> FastAPI:
     """Create and configure the FastAPI app.
 
     Either pass pre-built `engines` + `event_bus` (for testing),
     or pass `root` to auto-create them.
     """
-    from atlas.server.deps import create_engine_set, EventBus as _EventBus
+    from atlas.core.registry import ProjectRegistry
+    from atlas.server.deps import create_engine_set, EventBus, ScanStatus as _ScanStatus
 
     if engines is None:
         if root is None:
@@ -69,7 +75,12 @@ def create_app(
         engines = create_engine_set(root)
 
     if event_bus is None:
-        event_bus = _EventBus()
+        event_bus = EventBus()
+
+    if registry is None:
+        registry = ProjectRegistry()
+    if scan_status is None:
+        scan_status = _ScanStatus()
 
     app = FastAPI(
         title="Atlas — Knowledge Engine",
@@ -81,6 +92,8 @@ def create_app(
     # Store engines on app state for access in routes
     app.state.engines = engines
     app.state.event_bus = event_bus
+    app.state.registry = registry
+    app.state.scan_status = scan_status
 
     # --- Health ---
 
@@ -525,6 +538,195 @@ def create_app(
 
         return IngestResponse(path=path)
 
+    # --- Project Management ---
+
+    @app.get("/api/projects")
+    def list_projects():
+        projects = app.state.registry.list()
+        return {
+            "projects": [
+                ProjectEntrySchema.from_registry(p).model_dump()
+                for p in projects
+            ]
+        }
+
+    @app.post("/api/projects/open")
+    def open_project(req: ProjectOpenRequest):
+        path = Path(req.path).resolve()
+        if not path.is_dir():
+            raise AtlasValidationError(f"Path is not a directory: {req.path}")
+
+        registry = app.state.registry
+        scan_status = app.state.scan_status
+        engines = app.state.engines
+
+        # Register (or update) the project
+        entry = registry.register(str(path))
+
+        # Check if scan is needed
+        scanned = False
+        if registry.needs_rescan(str(path)):
+            scan_status.start(f"Scanning {entry.name}")
+            try:
+                # Rebuild engines for the new project
+                new_engines = create_engine_set(path)
+                extraction = new_engines.scanner.scan(path, incremental=False)
+                if extraction.nodes:
+                    new_engines.graph.merge(extraction)
+                    new_engines.linker.sync_wiki_to_graph()
+                    new_engines.save_graph()
+
+                # Update stats in registry
+                stats = new_engines.graph.stats()
+                registry.update_stats(
+                    str(path),
+                    nodes=stats.nodes,
+                    edges=stats.edges,
+                    communities=stats.communities,
+                    health=stats.health_score,
+                )
+                entry = registry.get(str(path))
+
+                # Replace active engines
+                engines.graph = new_engines.graph
+                engines.scanner = new_engines.scanner
+                engines.linker = new_engines.linker
+                engines.analyzer = new_engines.analyzer
+                engines.wiki = new_engines.wiki
+                engines.storage = new_engines.storage
+                engines.cache = new_engines.cache
+                engines.ingest = new_engines.ingest
+                engines.root = new_engines.root
+                app.state.engines = engines
+                scanned = True
+            finally:
+                scan_status.finish()
+
+            event_bus.emit("scan.completed", {
+                "event": "scan.completed",
+                "path": str(path),
+                "nodes": entry.nodes,
+                "edges": entry.edges,
+            })
+        else:
+            # Load existing graph without rescan
+            new_engines = create_engine_set(path)
+            new_engines.load_graph()
+            new_engines.linker.sync_wiki_to_graph()
+            stats = new_engines.graph.stats()
+            registry.update_stats(
+                str(path),
+                nodes=stats.nodes,
+                edges=stats.edges,
+                communities=stats.communities,
+                health=stats.health_score,
+            )
+            entry = registry.get(str(path))
+            engines.graph = new_engines.graph
+            engines.scanner = new_engines.scanner
+            engines.linker = new_engines.linker
+            engines.analyzer = new_engines.analyzer
+            engines.wiki = new_engines.wiki
+            engines.storage = new_engines.storage
+            engines.cache = new_engines.cache
+            engines.ingest = new_engines.ingest
+            engines.root = new_engines.root
+            app.state.engines = engines
+
+        event_bus.emit("project.switched", {
+            "event": "project.switched",
+            "path": str(path),
+            "name": entry.name,
+            "nodes": entry.nodes,
+            "edges": entry.edges,
+            "communities": entry.communities,
+        })
+
+        return {
+            "project": ProjectEntrySchema.from_registry(entry).model_dump(),
+            "scanned": scanned,
+        }
+
+    @app.post("/api/projects/switch")
+    def switch_project(req: ProjectSwitchRequest):
+        path = Path(req.path).resolve()
+        if not path.is_dir():
+            raise AtlasValidationError(f"Path is not a directory: {req.path}")
+
+        registry = app.state.registry
+        scan_status = app.state.scan_status
+        engines = app.state.engines
+        event_bus = app.state.event_bus
+
+        entry = registry.get(str(path))
+        if entry is None:
+            # Auto-register on switch
+            entry = registry.register(str(path))
+
+        # Rebuild engines
+        new_engines = create_engine_set(path)
+
+        # Load graph or scan if needed
+        if registry.needs_rescan(str(path)):
+            scan_status.start(f"Scanning {entry.name}")
+            try:
+                extraction = new_engines.scanner.scan(path, incremental=True)
+                if extraction.nodes:
+                    new_engines.graph.merge(extraction)
+                    new_engines.linker.sync_wiki_to_graph()
+                    new_engines.save_graph()
+            finally:
+                scan_status.finish()
+        else:
+            new_engines.load_graph()
+            new_engines.linker.sync_wiki_to_graph()
+
+        # Update stats
+        stats = new_engines.graph.stats()
+        registry.update_stats(
+            str(path),
+            nodes=stats.nodes,
+            edges=stats.edges,
+            communities=stats.communities,
+            health=stats.health_score,
+        )
+        entry = registry.get(str(path))
+
+        # Swap engines
+        engines.graph = new_engines.graph
+        engines.scanner = new_engines.scanner
+        engines.linker = new_engines.linker
+        engines.analyzer = new_engines.analyzer
+        engines.wiki = new_engines.wiki
+        engines.storage = new_engines.storage
+        engines.cache = new_engines.cache
+        engines.ingest = new_engines.ingest
+        engines.root = new_engines.root
+        app.state.engines = engines
+
+        event_bus.emit("project.switched", {
+            "event": "project.switched",
+            "path": str(path),
+            "name": entry.name,
+            "nodes": entry.nodes,
+            "edges": entry.edges,
+            "communities": entry.communities,
+        })
+
+        return {"project": ProjectEntrySchema.from_registry(entry).model_dump()}
+
+    @app.delete("/api/projects/{path:path}")
+    def remove_project(path: str):
+        import urllib.parse
+        decoded = urllib.parse.unquote(path)
+        registry = app.state.registry
+        removed = registry.remove(decoded)
+        return {"removed": removed}
+
+    @app.get("/api/scan/status")
+    def get_scan_status():
+        return app.state.scan_status.to_dict()
+
     # --- Lifecycle ---
 
     @app.on_event("startup")
@@ -556,14 +758,25 @@ def run_server(
     This is the entry point for `atlas serve`.
     """
     import uvicorn
-    from atlas.server.deps import create_engine_set, EventBus
+    from atlas.core.registry import ProjectRegistry
+    from atlas.server.deps import create_engine_set, EventBus, ScanStatus
     from atlas.server.ws import WebSocketManager, mount_websocket
 
     root = Path(root).resolve()
     engines = create_engine_set(root)
     event_bus = EventBus()
+    registry = ProjectRegistry()
+    scan_status = ScanStatus()
 
-    app = create_app(engines=engines, event_bus=event_bus)
+    # Register the current project
+    registry.register(str(root))
+
+    app = create_app(
+        engines=engines,
+        event_bus=event_bus,
+        registry=registry,
+        scan_status=scan_status,
+    )
 
     # Mount WebSocket
     ws_manager = WebSocketManager()

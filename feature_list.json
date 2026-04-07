@@ -1,0 +1,173 @@
+{
+  "_meta": {
+    "project": "Atlas Projects (Plan 7)",
+    "rules": [
+      "NEVER modify descriptions — they come from the spec",
+      "Only set passes: true AFTER interactive E2E verification",
+      "TDD: write failing test FIRST, then implement"
+    ]
+  },
+  "features": [
+    {
+      "id": "proj-registry-core",
+      "description": "ProjectRegistry — core module in atlas/core/registry.py, CRUD on ~/.atlas/projects.json",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "core-server",
+      "preconditions": [],
+      "expectedBehavior": [
+        "ProjectEntry dataclass with to_dict/from_dict",
+        "ProjectRegistry.list() sorted by last_opened desc, capped at 20",
+        "ProjectRegistry.register() creates or updates entry",
+        "ProjectRegistry.remove() deletes entry",
+        "ProjectRegistry.needs_rescan() checks manifest + mtimes"
+      ],
+      "verificationSteps": ["uv run pytest tests/core/test_registry.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-schemas",
+      "description": "Server Pydantic schemas for project API — ProjectEntrySchema, ProjectOpenRequest/Response, etc.",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "core-server",
+      "preconditions": ["proj-registry-core"],
+      "expectedBehavior": [
+        "All 7 project schemas importable from atlas.server.schemas",
+        "ProjectEntrySchema.from_registry() converts registry entry to schema"
+      ],
+      "verificationSteps": ["uv run pytest tests/server/test_project_schemas.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-deps",
+      "description": "deps.py ScanStatus class + create_engine_set() function",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "core-server",
+      "preconditions": [],
+      "expectedBehavior": [
+        "ScanStatus tracks active/progress/message",
+        "create_engine_set() accepts Path, returns EngineSet"
+      ],
+      "verificationSteps": ["uv run pytest tests/server/test_deps_projects.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-api-routes",
+      "description": "5 new API routes — GET /api/projects, POST /api/projects/open, POST /api/projects/switch, DELETE /api/projects/{path}, GET /api/scan/status",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "core-server",
+      "preconditions": ["proj-registry-core", "proj-schemas", "proj-deps"],
+      "expectedBehavior": [
+        "All 5 routes return correct status codes",
+        "project.switched + scan.progress events wired to WebSocket",
+        "run_server() passes registry + scan_status"
+      ],
+      "verificationSteps": ["uv run pytest tests/server/test_projects_api.py -v", "uv run pytest tests/server/test_auto_rescan.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-welcome-screen",
+      "description": "Welcome Screen — atlas/dashboard/welcome.js, shows recent projects + Open Folder input",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "dashboard",
+      "preconditions": [],
+      "expectedBehavior": [
+        "Welcome.js renders recent projects list from /api/projects",
+        "Click project card → POST /api/projects/open → navigate to graph",
+        "Open Folder input → POST /api/projects/open → show progress bar",
+        "Empty state shows clean message"
+      ],
+      "verificationSteps": ["uv run pytest tests/dashboard/test_welcome_exists.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-switcher",
+      "description": "Project Switcher — dropdown in navbar, shows current project, instant switch via /api/projects/switch",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "dashboard",
+      "preconditions": ["proj-welcome-screen"],
+      "expectedBehavior": [
+        "Dropdown toggles on click, closes on outside click",
+        "Green dot on active project",
+        "Switch calls /api/projects/switch",
+        "'Open Folder' + 'Recent Projects' buttons → navigate to welcome"
+      ],
+      "verificationSteps": [],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-cli-commands",
+      "description": "CLI commands — atlas . (dot), atlas open, atlas projects (list/remove)",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "cli-final",
+      "preconditions": ["proj-registry-core", "proj-api-routes"],
+      "expectedBehavior": [
+        "atlas projects → list all registered projects",
+        "atlas projects remove <path> → unregister project",
+        "atlas open <path> → register + scan + serve",
+        "atlas dot <path> → scan if needed + serve + open browser"
+      ],
+      "verificationSteps": ["uv run pytest tests/cli/test_cli_projects.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "proj-auto-rescan",
+      "description": "Auto-rescan — opening/switching projects triggers L0+L1 scan if files changed",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "cli-final",
+      "preconditions": ["proj-api-routes"],
+      "expectedBehavior": [
+        "First open → always scans",
+        "Reopen with unchanged files → skips scan",
+        "Reopen after file modification → triggers incremental rescan"
+      ],
+      "verificationSteps": ["uv run pytest tests/server/test_auto_rescan.py -v"],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "hermes",
+      "completedWorkerId": null
+    },
+    {
+      "id": "scrutiny-projects",
+      "description": "Code review validation for Plan 7 — 4-axis review (functionality, quality, design, performance)",
+      "priority": "P0",
+      "mission": "mis_2026d8f9a",
+      "milestone": "all",
+      "preconditions": ["proj-registry-core", "proj-schemas", "proj-deps", "proj-api-routes", "proj-welcome-screen", "proj-switcher", "proj-cli-commands", "proj-auto-rescan"],
+      "expectedBehavior": ["4-axis review completed", "Report synthesized"],
+      "verificationSteps": [],
+      "fulfills": [],
+      "status": "pending",
+      "executor": "delegate_task",
+      "completedWorkerId": null
+    }
+  ]
+}
