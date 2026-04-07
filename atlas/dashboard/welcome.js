@@ -237,8 +237,8 @@ async function handleOpenFolder() {
 async function switchToProject(path, name) {
     try {
         await api.post('/api/projects/switch', { path });
-        // Reload to reinitialize views
-        window.location.reload();
+        // Navigate to graph without full reload — emit event so graph reloads its data
+        window.location.hash = '#/graph';
     } catch (err) {
         console.error('[welcome] Switch failed:', err);
         showError(`Failed to switch to ${name}: ${err.message}`);

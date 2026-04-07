@@ -41,6 +41,7 @@ let filteredEdges = null;
 let communities = new Set();
 let nodeTypes = new Set();
 let wsUnsub = null;
+let projectUnsub = null;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -443,6 +444,20 @@ export async function init(container, params) {
         toast(`Graph updated: ${payload.summary || 'changes applied'}`, 'info', 2000);
     });
 
+    // Project switched: reload graph data
+    projectUnsub = on('project.switched', async () => {
+        // Reload graph from new project
+        try {
+            const data = await api.get('/api/graph');
+            rawNodes = data.nodes || [];
+            rawEdges = data.edges || [];
+            populateFilters();
+            applyFilters();
+        } catch (err) {
+            toast(`Failed to load graph: ${err.message}`, 'error');
+        }
+    });
+
     // If a node ID was passed as param, focus on it
     if (params?.[0]) {
         const targetId = decodeURIComponent(params[0]);
@@ -471,6 +486,10 @@ export function destroy() {
     if (wsUnsub) {
         wsUnsub();
         wsUnsub = null;
+    }
+    if (projectUnsub) {
+        projectUnsub();
+        projectUnsub = null;
     }
     rawNodes = [];
     rawEdges = [];

@@ -1395,6 +1395,16 @@ export async function init(container, params) {
             attachSidebarListeners();
         }
     }));
+
+    // Project switched: reload sidebar data
+    wsUnsubs.push(on('project.switched', async () => {
+        await loadSidebarData();
+        const sidebar = document.getElementById('explorer-sidebar');
+        if (sidebar) {
+            sidebar.outerHTML = renderSidebar();
+            attachSidebarListeners();
+        }
+    }));
 }
 
 export function destroy() {
