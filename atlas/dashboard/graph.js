@@ -325,7 +325,7 @@ export async function init(container, params) {
                 </div>
 
                 <!-- vis-network container -->
-                <div id="graph-canvas" class="w-full h-full bg-surface-0"></div>
+                <div id="graph-canvas" class="absolute inset-0 bg-surface-0"></div>
             </div>
 
             <!-- Node detail panel (right sidebar) -->
