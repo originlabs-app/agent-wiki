@@ -130,11 +130,24 @@ def create_app(
             health_score=s.health_score,
         ))
 
+    # --- Graph (full dump for dashboard) ---
+
+    @app.get("/api/graph")
+    def get_graph():
+        """Return all nodes and edges for the dashboard visualization."""
+        all_nodes = [NodeSchema.from_core(engines.graph.get_node(nid)) for nid in engines.graph.iter_node_ids()]
+        all_edges = []
+        for u, v in engines.graph.iter_edges(data=False):
+            d = engines.graph.get_edge_data(u, v)
+            all_edges.append(EdgeSchema(source=u, target=v, type=d.get("type", "calls"), confidence=d.get("confidence", "INFERRED"), relation=d.get("type", "calls"), weight=d.get("weight", 1.0)))
+        return {"nodes": all_nodes, "edges": all_edges}
+
     # --- Query ---
 
     @app.post("/api/query", response_model=QueryResponse)
+    @app.post("/api/graph/query", response_model=QueryResponse, include_in_schema=False)
     def query(req: QueryRequest):
-        subgraph = engines.graph.query(req.question, mode=req.mode, depth=req.depth)
+        subgraph = engines.graph.query(req.effective_question, mode=req.mode, depth=req.depth)
         return QueryResponse(
             nodes=[NodeSchema.from_core(n) for n in subgraph.nodes],
             edges=[EdgeSchema.from_core(e) for e in subgraph.edges],
@@ -227,6 +240,42 @@ def create_app(
     def wiki_search(req: WikiSearchRequest):
         results = engines.wiki.search(req.terms)
         return WikiSearchResponse(results=[PageSchema.from_core(p) for p in results])
+
+    @app.get("/api/wiki/search")
+    def wiki_search_get(q: str = ""):
+        """GET variant for dashboard — searches wiki pages by query string.
+        Returns array directly (dashboard expects raw array, not {results: []})."""
+        if not q:
+            return []
+        results = engines.wiki.search(q)
+        return [PageSchema.from_core(p).model_dump() for p in results]
+
+    @app.get("/api/wiki/pages")
+    def wiki_pages(type: str | None = None):
+        """List all wiki pages, optionally filtered by type. Returns array directly."""
+        pages = engines.wiki.list_pages(type=type)
+        return [PageSchema.from_core(p).model_dump() for p in pages]
+
+    @app.get("/api/log")
+    def get_log(limit: int = 50, offset: int = 0):
+        """Read the wiki operation log. Returns array directly for dashboard compatibility."""
+        log_content = engines.storage.read("wiki/log.md")
+        if log_content is None:
+            return []
+        # Parse log entries (format: [YYYY-MM-DD] agent | op | description)
+        import re
+        entries = []
+        for line in log_content.splitlines():
+            m = re.match(r"\[(\d{4}-\d{2}-\d{2})\]\s+(\S+)\s+\|\s+(\S+)\s+\|\s+(.*)", line)
+            if m:
+                entries.append({
+                    "date": m.group(1),
+                    "agent": m.group(2),
+                    "operation": m.group(3),
+                    "description": m.group(4).strip(),
+                })
+        entries.reverse()  # newest first
+        return entries[offset:offset + limit]
 
     # --- Audit ---
 

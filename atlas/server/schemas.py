@@ -114,9 +114,14 @@ class ScanRequest(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    question: str
+    question: str = ""
+    start: str = ""  # alias used by dashboard
     mode: str = "bfs"
     depth: int = 3
+
+    @property
+    def effective_question(self) -> str:
+        return self.question or self.start
 
 
 class PathRequest(BaseModel):
