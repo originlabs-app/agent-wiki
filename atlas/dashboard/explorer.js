@@ -14,6 +14,7 @@ let currentSelection = null;  // { type: 'wiki'|'file'|'community', path|id }
 let isEditing = false;
 let sidebarData = { stats: null, files: [], pages: [], communities: [] };
 let folderState = {};  // path -> collapsed boolean (persisted in localStorage)
+let browseMode = 'folder'; // 'folder' | 'type' | 'community'
 let wsUnsubs = [];
 let editDebounceTimer = null;
 
@@ -55,9 +56,24 @@ function loadFolderState() {
     } catch { /* ignore */ }
 }
 
+function loadBrowseMode() {
+    try {
+        const stored = localStorage.getItem('atlas-browse-mode');
+        if (stored && ['folder', 'type', 'community'].includes(stored)) {
+            browseMode = stored;
+        }
+    } catch { /* ignore */ }
+}
+
 function saveFolderState() {
     try {
         localStorage.setItem('atlas-explorer-folders', JSON.stringify(folderState));
+    } catch { /* ignore */ }
+}
+
+function saveBrowseMode() {
+    try {
+        localStorage.setItem('atlas-browse-mode', browseMode);
     } catch { /* ignore */ }
 }
 
@@ -339,54 +355,215 @@ function renderCommunities() {
 }
 
 // ---------------------------------------------------------------------------
+// Browse Toggle + Dispatcher
+// ---------------------------------------------------------------------------
+
+function renderBrowseToggle() {
+    const modes = [
+        { key: 'folder',    icon: '\uD83D\uDCC1', label: 'Folder' },
+        { key: 'type',      icon: '\uD83D\uDCDD', label: 'Type' },
+        { key: 'community', icon: '\uD83C\uDFD8\uFE0F', label: 'Community' },
+    ];
+
+    return `
+        <div class="flex items-center gap-0.5 px-3 py-1.5">
+            ${modes.map(m => {
+                const isActive = browseMode === m.key;
+                return `
+                    <button data-action="set-browse-mode" data-mode="${m.key}"
+                        class="flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
+                            isActive
+                                ? 'bg-atlas-600/20 text-atlas-400 font-medium'
+                                : 'text-gray-500 hover:text-gray-300 hover:bg-surface-2'
+                        }">
+                        <span class="text-xs">${m.icon}</span>
+                        <span>${m.label}</span>
+                    </button>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function renderBrowseContent() {
+    switch (browseMode) {
+        case 'folder':    return renderFileTree(sidebarData.files);
+        case 'type':      return renderTypeList();
+        case 'community': return renderCommunityList();
+        default:          return renderFileTree(sidebarData.files);
+    }
+}
+
+function renderTypeList() {
+    const pages = sidebarData.pages;
+    const files = sidebarData.files;
+
+    if ((!pages || !pages.length) && (!files || !files.length)) {
+        return `<div class="px-3 py-2 text-xs text-gray-500">No content scanned.</div>`;
+    }
+
+    const groups = {
+        'Concepts':  [],
+        'Projects':  [],
+        'Decisions': [],
+        'Sources':   [],
+        'Other':     [],
+    };
+
+    const TYPE_TO_GROUP = {
+        'wiki-concept':  'Concepts',
+        'wiki-page':     'Projects',
+        'wiki-decision': 'Decisions',
+        'wiki-source':   'Sources',
+    };
+
+    const wikiPaths = new Set();
+    pages.forEach(p => {
+        const group = TYPE_TO_GROUP[p.type] || 'Other';
+        const slug = p.path.replace(/\.md$/, '').split('/').pop();
+        const tags = p.frontmatter?.tags || [];
+        const status = p.frontmatter?.status;
+        groups[group].push({
+            title: p.title,
+            slug,
+            path: p.path,
+            tags,
+            status,
+            isWiki: true,
+        });
+        wikiPaths.add(p.path);
+    });
+
+    function collectFiles(nodes) {
+        for (const node of nodes) {
+            if (node.children) {
+                collectFiles(node.children);
+            } else if (!wikiPaths.has(node.path)) {
+                groups['Other'].push({
+                    title: node.name,
+                    slug: null,
+                    path: node.path,
+                    tags: [],
+                    status: node.type,
+                    isWiki: false,
+                });
+            }
+        }
+    }
+    collectFiles(files);
+
+    const groupOrder = ['Concepts', 'Projects', 'Decisions', 'Sources', 'Other'];
+
+    return groupOrder.filter(g => groups[g].length > 0).map(groupName => {
+        const items = groups[groupName].sort((a, b) => a.title.localeCompare(b.title));
+        const groupKey = `type-group-${groupName}`;
+        const isCollapsed = folderState[groupKey] === true;
+
+        return `
+            <div>
+                <div class="flex items-center gap-1 px-3 py-1 text-xs cursor-pointer hover:bg-surface-2 transition-colors group"
+                     data-action="toggle-folder" data-path="${groupKey}">
+                    <span class="text-gray-500 text-[9px] w-3 shrink-0">${isCollapsed ? '\u25B6' : '\u25BC'}</span>
+                    <span class="text-gray-400 group-hover:text-gray-200 transition-colors">${groupName}</span>
+                    <span class="text-[10px] text-gray-600 ml-1">(${items.length})</span>
+                </div>
+                ${isCollapsed ? '' : `
+                    <div>
+                        ${items.map(item => {
+                            const href = item.isWiki
+                                ? `#/explorer/wiki/${encodeURIComponent(item.slug)}`
+                                : `#/explorer/file/${encodeURIComponent(item.path)}`;
+                            const isActive = item.isWiki
+                                ? (currentSelection?.type === 'wiki' && currentSelection?.path === item.path)
+                                : (currentSelection?.type === 'file' && currentSelection?.path === item.path);
+
+                            return `
+                                <a href="${href}"
+                                   class="flex items-center gap-1.5 px-3 py-1 text-xs cursor-pointer hover:bg-surface-2 transition-colors ${isActive ? 'bg-surface-2' : ''}"
+                                   style="padding-left: 28px">
+                                    <span class="truncate ${isActive ? 'text-white' : 'text-gray-400 hover:text-gray-200'} transition-colors">${escapeHtml(item.title)}</span>
+                                    <span class="ml-auto flex items-center gap-1 shrink-0">
+                                        ${item.tags.slice(0, 2).map(t => `<span class="px-1 py-0 bg-surface-3 rounded text-[9px] text-gray-500">${t}</span>`).join('')}
+                                        ${item.status ? `<span class="text-[10px] text-gray-500">${item.status}</span>` : ''}
+                                    </span>
+                                </a>
+                            `;
+                        }).join('')}
+                    </div>
+                `}
+            </div>
+        `;
+    }).join('');
+}
+
+function humanizeCommunityLabel(label) {
+    if (label.includes('/') || /\.\w{1,5}$/.test(label)) {
+        const base = label.split('/').pop().replace(/\.\w{1,5}$/, '');
+        return base.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    return label;
+}
+
+function renderCommunityList() {
+    const communities = sidebarData.communities;
+    if (!communities || !communities.length) {
+        return `<div class="px-3 py-2 text-xs text-gray-500">No communities detected.</div>`;
+    }
+
+    const maxSize = Math.max(...communities.map(c => c.size));
+    const displayCount = 15;
+    const visible = communities.slice(0, displayCount);
+    const hasMore = communities.length > displayCount;
+
+    return `
+        <div>
+            ${visible.map(c => {
+                const barWidth = Math.round((c.size / maxSize) * 100);
+                const isActive = currentSelection?.type === 'community' && currentSelection?.id === c.id;
+                const humanLabel = humanizeCommunityLabel(c.label);
+
+                return `
+                    <a href="#/explorer/community/${c.id}"
+                       class="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-surface-2 transition-colors ${isActive ? 'bg-surface-2' : ''}">
+                        <span class="truncate ${isActive ? 'text-white' : 'text-gray-400'} transition-colors flex-1">${escapeHtml(humanLabel)}</span>
+                        <span class="text-[10px] text-gray-600 shrink-0">${c.size}</span>
+                        <div class="w-16 h-1.5 bg-surface-3 rounded-full shrink-0 overflow-hidden">
+                            <div class="h-full bg-atlas-600 rounded-full" style="width: ${barWidth}%"></div>
+                        </div>
+                    </a>
+                `;
+            }).join('')}
+            ${hasMore ? `
+                <button class="px-3 py-1 text-[10px] text-atlas-400 hover:text-atlas-300 transition-colors"
+                        data-action="show-all-communities">
+                    Show all ${communities.length} communities
+                </button>
+            ` : ''}
+        </div>
+    `;
+}
+
+// ---------------------------------------------------------------------------
 // Full Sidebar Render
 // ---------------------------------------------------------------------------
 
 function renderSidebar() {
     return `
         <aside id="explorer-sidebar" class="w-72 shrink-0 border-r border-surface-3 bg-surface-1 flex flex-col overflow-hidden">
-            <!-- Overview -->
+            <!-- OVERVIEW -->
             <div class="border-b border-surface-3">
                 <div class="px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Overview</div>
                 ${renderOverview()}
             </div>
 
-            <!-- Scrollable sections -->
-            <div class="flex-1 overflow-y-auto">
-                <!-- Files -->
-                <div class="border-b border-surface-3">
-                    <div class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-2 transition-colors"
-                         data-action="toggle-folder" data-path="__section_files">
-                        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Files</span>
-                        <span class="text-[9px] text-gray-600">${folderState.__section_files === true ? '\u25B6' : '\u25BC'}</span>
-                    </div>
-                    ${folderState.__section_files === true ? '' : `<div class="pb-2">${renderFileTree(sidebarData.files)}</div>`}
+            <!-- BROWSE -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="flex items-center justify-between px-3 py-2 border-b border-surface-3">
+                    <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Browse</span>
                 </div>
-
-                <!-- Wiki -->
-                <div class="border-b border-surface-3">
-                    <div class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-2 transition-colors"
-                         data-action="toggle-folder" data-path="__section_wiki">
-                        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                            Wiki
-                            <span class="text-gray-600 font-normal">(${sidebarData.pages.length})</span>
-                        </span>
-                        <span class="text-[9px] text-gray-600">${folderState.__section_wiki === true ? '\u25B6' : '\u25BC'}</span>
-                    </div>
-                    ${folderState.__section_wiki === true ? '' : `<div class="pb-2">${renderWikiList()}</div>`}
-                </div>
-
-                <!-- Communities -->
-                <div>
-                    <div class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface-2 transition-colors"
-                         data-action="toggle-folder" data-path="__section_communities">
-                        <span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                            Communities
-                            <span class="text-gray-600 font-normal">(${sidebarData.communities.length})</span>
-                        </span>
-                        <span class="text-[9px] text-gray-600">${folderState.__section_communities === true ? '\u25B6' : '\u25BC'}</span>
-                    </div>
-                    ${folderState.__section_communities === true ? '' : `<div class="pb-2">${renderCommunities()}</div>`}
+                ${renderBrowseToggle()}
+                <div class="flex-1 overflow-y-auto pb-2">
+                    ${renderBrowseContent()}
                 </div>
             </div>
         </aside>
@@ -979,6 +1156,16 @@ function attachSidebarListeners() {
             sidebar.outerHTML = renderSidebar();
             attachSidebarListeners();
         }
+
+        if (action === 'set-browse-mode') {
+            const mode = target.dataset.mode;
+            if (mode && ['folder', 'type', 'community'].includes(mode)) {
+                browseMode = mode;
+                saveBrowseMode();
+                sidebar.outerHTML = renderSidebar();
+                attachSidebarListeners();
+            }
+        }
     });
 }
 
@@ -1087,6 +1274,7 @@ async function routeContent(params, contentEl) {
 
 export async function init(container, params) {
     loadFolderState();
+    loadBrowseMode();
     await loadSidebarData();
 
     container.innerHTML = renderLayout(renderNoSelection());
