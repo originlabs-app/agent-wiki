@@ -13,7 +13,7 @@ def test_index_html_exists():
 
 def test_static_files_exist():
     dashboard = Path(__file__).parent.parent.parent / "atlas" / "dashboard"
-    required = ["index.html", "app.js", "graph.js", "wiki.js", "audit.js", "search.js", "timeline.js", "styles.css"]
+    required = ["index.html", "app.js", "graph.js", "wiki.js", "explorer.js", "audit.js", "search.js", "timeline.js", "styles.css"]
     for f in required:
         assert (dashboard / f).exists(), f"Missing: {f}"
 

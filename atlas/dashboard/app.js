@@ -170,8 +170,17 @@ export function registerView(name, mod) {
 async function route() {
     const hash = window.location.hash.slice(1) || '/';
     const segments = hash.split('/').filter(Boolean);
-    const viewName = segments[0] || 'graph';
-    const params = segments.slice(1);
+    let viewName = segments[0] || 'graph';
+    let params = segments.slice(1);
+
+    // Backward compat: #/wiki/* -> #/explorer/wiki/*
+    if (viewName === 'wiki') {
+        const newHash = params.length
+            ? `#/explorer/wiki/${params.join('/')}`
+            : '#/explorer';
+        window.location.hash = newHash;
+        return;
+    }
 
     // Deactivate current view
     if (state.currentView && views[state.currentView]?.destroy) {
@@ -258,16 +267,16 @@ function initThemeToggle() {
 
 async function boot() {
     // Import views
-    const [graphMod, wikiMod, auditMod, searchMod, timelineMod] = await Promise.all([
+    const [graphMod, explorerMod, auditMod, searchMod, timelineMod] = await Promise.all([
         import('/dashboard/graph.js'),
-        import('/dashboard/wiki.js'),
+        import('/dashboard/explorer.js'),
         import('/dashboard/audit.js'),
         import('/dashboard/search.js'),
         import('/dashboard/timeline.js'),
     ]);
 
     registerView('graph', graphMod);
-    registerView('wiki', wikiMod);
+    registerView('explorer', explorerMod);
     registerView('audit', auditMod);
     registerView('search', searchMod);
     registerView('timeline', timelineMod);
