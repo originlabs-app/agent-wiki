@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas — Knowledge Engine</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        atlas: {
+                            50:  '#eef7ff',
+                            100: '#d9edff',
+                            200: '#bce0ff',
+                            300: '#8ecdff',
+                            400: '#59b0ff',
+                            500: '#338dff',
+                            600: '#1b6cf5',
+                            700: '#1456e1',
+                            800: '#1746b6',
+                            900: '#193d8f',
+                            950: '#142757',
+                        },
+                        surface: {
+                            0:   '#0a0a0f',
+                            1:   '#111118',
+                            2:   '#1a1a24',
+                            3:   '#232330',
+                            4:   '#2d2d3d',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Marked.js for markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+
+    <!-- Highlight.js for code blocks -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
+
+    <!-- vis-network for graph -->
+    <script src="https://cdn.jsdelivr.net/npm/vis-network@9/standalone/umd/vis-network.min.js"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/dashboard/styles.css">
+</head>
+<body class="bg-surface-0 text-gray-200 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation -->
+    <header class="bg-surface-1 border-b border-surface-3 px-4 py-2 flex items-center justify-between shrink-0 z-50">
+        <div class="flex items-center gap-3 relative">
+            <!-- Logo -->
+            <a href="#/" class="flex items-center gap-2 text-white hover:text-atlas-400 transition-colors">
+                <svg class="w-7 h-7" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="14" cy="14" r="12" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                    <circle cx="14" cy="6" r="2.5" fill="currentColor"/>
+                    <circle cx="7" cy="18" r="2.5" fill="currentColor"/>
+                    <circle cx="21" cy="18" r="2.5" fill="currentColor"/>
+                    <line x1="14" y1="8.5" x2="8.5" y2="16" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+                    <line x1="14" y1="8.5" x2="19.5" y2="16" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+                    <line x1="9.5" y1="18" x2="18.5" y2="18" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+                </svg>
+                <span class="text-lg font-semibold tracking-tight">Atlas</span>
+            </a>
+
+            <!-- Project dropdown (hidden on welcome screen) -->
+            <div id="project-dropdown-container" class="hidden ml-3">
+                <button id="project-dropdown-trigger" class="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-2 hover:bg-surface-3 border border-surface-3 rounded-lg text-sm text-gray-300 transition-colors group">
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                    <span id="project-dropdown-name" class="font-medium max-w-[140px] truncate">—</span>
+                    <svg class="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="project-dropdown-menu" class="hidden absolute mt-1 w-64 bg-surface-1 border border-surface-3 rounded-lg shadow-xl z-50 overflow-hidden">
+                    <div id="project-dropdown-list" class="py-1 max-h-64 overflow-y-auto"></div>
+                    <div class="border-t border-surface-3 py-1">
+                        <button id="dropdown-open-folder" class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-surface-2 hover:text-gray-200 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Open Folder...
+                        </button>
+                        <button id="dropdown-recent-projects" class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-surface-2 hover:text-gray-200 transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                            </svg>
+                            Recent Projects
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nav tabs -->
+            <nav class="flex items-center gap-1 ml-6" id="nav-tabs">
+                <a href="#/" class="nav-tab active" data-view="graph">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/>
+                        <line x1="8.5" y1="7.5" x2="15.5" y2="16.5"/><line x1="8.5" y1="6" x2="15" y2="6"/>
+                    </svg>
+                    Graph
+                </a>
+                <a href="#/explorer" class="nav-tab" data-view="explorer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                    Explorer
+                </a>
+                <a href="#/audit" class="nav-tab" data-view="audit">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    Audit
+                </a>
+                <a href="#/search" class="nav-tab" data-view="search">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Search
+                </a>
+                <a href="#/timeline" class="nav-tab" data-view="timeline">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                    </svg>
+                    Timeline
+                </a>
+            </nav>
+        </div>
+
+        <!-- Right side: search + status -->
+        <div class="flex items-center gap-3">
+            <!-- Quick search -->
+            <div class="relative">
+                <input
+                    type="text"
+                    id="quick-search"
+                    placeholder="Search... (Ctrl+K)"
+                    class="bg-surface-2 border border-surface-4 rounded-lg px-3 py-1.5 pl-8 text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-atlas-500 focus:ring-1 focus:ring-atlas-500/30 w-56 transition-all"
+                >
+                <svg class="w-4 h-4 absolute left-2.5 top-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </div>
+
+            <!-- Connection status -->
+            <div id="ws-status" class="flex items-center gap-1.5 text-xs text-gray-500">
+                <span class="w-2 h-2 rounded-full bg-gray-600 animate-pulse" id="ws-dot"></span>
+                <span id="ws-label">Connecting</span>
+            </div>
+
+            <!-- Dark mode toggle -->
+            <button id="theme-toggle" class="p-1.5 rounded-lg hover:bg-surface-3 transition-colors text-gray-400 hover:text-gray-200" title="Toggle theme">
+                <svg class="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                <svg class="w-5 h-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="fixed top-16 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Main content -->
+    <main id="app" class="flex-1 overflow-hidden">
+        <!-- Views are mounted here by the router -->
+    </main>
+
+    <!-- Loading overlay (shown on first load) -->
+    <div id="loading-overlay" class="fixed inset-0 bg-surface-0 flex items-center justify-center z-[100] transition-opacity duration-300">
+        <div class="text-center">
+            <svg class="w-12 h-12 text-atlas-500 animate-spin mx-auto mb-3" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.2"/>
+                <path d="M12 2a10 10 0 019.95 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p class="text-gray-400 text-sm">Loading Atlas...</p>
+        </div>
+    </div>
+
+    <!-- App entry point -->
+    <script type="module" src="/dashboard/app.js"></script>
+</body>
+</html>

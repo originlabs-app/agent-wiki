@@ -35,6 +35,7 @@ atlas = "atlas.cli:app"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --tb=short"
+norecursedirs = ["fixtures/corpus"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["atlas"]
@@ -42,3 +43,16 @@ packages = ["atlas"]
 [tool.ruff]
 target-version = "py312"
 line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.ruff.lint.isort]
+known-first-party = ["atlas"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false
+include = ["atlas"]

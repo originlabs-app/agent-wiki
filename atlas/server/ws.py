@@ -87,5 +87,5 @@ def mount_websocket(app: FastAPI, manager: WebSocketManager, event_bus: EventBus
             await manager.disconnect(ws)
 
     # Wire EventBus events to WebSocket broadcasts
-    for event in ("wiki.changed", "graph.updated", "scan.completed"):
+    for event in ("wiki.changed", "graph.updated", "scan.completed", "project.switched", "scan.progress"):
         event_bus.subscribe(event, lambda data, evt=event: manager.broadcast_sync(evt, data))

@@ -1,0 +1,43 @@
+name: Benchmarks
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Weekly Monday 6 AM UTC
+  workflow_dispatch:       # Manual trigger
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Performance benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Run benchmarks
+        run: python benchmarks/run_all.py --output benchmarks/results/latest.json
+      - name: Check thresholds
+        run: |
+          python -c "
+          import json, sys
+          with open('benchmarks/results/latest.json') as f:
+              r = json.load(f)
+          fail = False
+          if r['scan']['time_per_file_ms'] > 1200:
+              print(f'FAIL: scan {r[\"scan\"][\"time_per_file_ms\"]:.0f}ms/file > 1200ms')
+              fail = True
+          if r['query']['p95_ms'] > 100:
+              print(f'FAIL: query p95 {r[\"query\"][\"p95_ms\"]:.1f}ms > 100ms')
+              fail = True
+          if not fail:
+              print('All benchmarks within thresholds')
+          sys.exit(1 if fail else 0)
+          "
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmarks/results/latest.json

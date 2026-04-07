@@ -114,9 +114,14 @@ class ScanRequest(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    question: str
+    question: str = ""
+    start: str = ""  # alias used by dashboard
     mode: str = "bfs"
     depth: int = 3
+
+    @property
+    def effective_question(self) -> str:
+        return self.question or self.start
 
 
 class PathRequest(BaseModel):
@@ -232,6 +237,97 @@ class IngestResponse(BaseModel):
     message: str = "Ingested"
 
 
+class FileTreeNode(BaseModel):
+    """A node in the file tree (file or directory)."""
+    path: str
+    name: str
+    type: str  # "directory" | node type (code, document, etc.)
+    degree: int = 0
+    children: list["FileTreeNode"] | None = None  # None for files, list for dirs
+
+
+class CommunityMemberSchema(BaseModel):
+    """A member node within a community."""
+    id: str
+    label: str
+    type: str = "unknown"
+    source_file: str = ""
+    degree: int = 0
+
+
+class CommunitySchema(BaseModel):
+    """A detected community cluster."""
+    id: int
+    label: str
+    size: int
+    cohesion: float = 0.0
+    members: list[CommunityMemberSchema] = Field(default_factory=list)
+
+
+class FileReadResponse(BaseModel):
+    """Raw file content response."""
+    path: str
+    content: str
+    type: str  # guessed file type
+
+
 class ErrorResponse(BaseModel):
     error: str
     detail: str | None = None
+
+
+# --- Project management ---
+
+
+class ProjectEntrySchema(BaseModel):
+    path: str
+    name: str
+    last_opened: str = ""
+    nodes: int = 0
+    edges: int = 0
+    communities: int = 0
+    health: float = 0.0
+
+    @classmethod
+    def from_registry(cls, entry) -> ProjectEntrySchema:
+        """Convert atlas.core.registry.ProjectEntry to schema."""
+        return cls(
+            path=entry.path,
+            name=entry.name,
+            last_opened=entry.last_opened,
+            nodes=entry.nodes,
+            edges=entry.edges,
+            communities=entry.communities,
+            health=entry.health,
+        )
+
+
+class ProjectOpenRequest(BaseModel):
+    path: str
+
+
+class ProjectOpenResponse(BaseModel):
+    project: ProjectEntrySchema
+    scanned: bool = False
+
+
+class ProjectSwitchRequest(BaseModel):
+    path: str
+
+
+class ProjectSwitchResponse(BaseModel):
+    project: ProjectEntrySchema
+
+
+class ProjectRemoveResponse(BaseModel):
+    removed: bool
+
+
+class ProjectListResponse(BaseModel):
+    projects: list[ProjectEntrySchema] = Field(default_factory=list)
+
+
+class ScanStatusResponse(BaseModel):
+    active: bool = False
+    progress: float = 0.0
+    message: str = "Idle"

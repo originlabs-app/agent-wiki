@@ -46,3 +46,21 @@ def sample_extraction():
             Edge(source="auth", target="db", relation="calls", confidence="INFERRED"),
         ],
     )
+
+
+CORPUS = FIXTURES / "corpus"
+
+
+@pytest.fixture
+def corpus_path():
+    """Path to the realistic test corpus (15 files across src/, docs/, papers/, notes/, tests/)."""
+    return CORPUS
+
+
+@pytest.fixture
+def corpus_storage(tmp_path):
+    """A LocalStorage pre-populated with the realistic corpus."""
+    import shutil
+    if CORPUS.exists():
+        shutil.copytree(CORPUS, tmp_path, dirs_exist_ok=True)
+    return LocalStorage(root=tmp_path)

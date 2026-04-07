@@ -61,6 +61,13 @@ class Edge:
     def __post_init__(self):
         if self.confidence_score is None:
             self.confidence_score = {"EXTRACTED": 1.0, "INFERRED": 0.7, "AMBIGUOUS": 0.2}.get(self.confidence, 0.5)
+        # Validate confidence is a valid EdgeConfidence value
+        if isinstance(self.confidence, str):
+            try:
+                EdgeConfidence(self.confidence)
+            except ValueError:
+                self.confidence = "AMBIGUOUS"
+                self.confidence_score = 0.2
 
 
 @dataclass
