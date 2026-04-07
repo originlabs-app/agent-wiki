@@ -24,7 +24,7 @@ def test_engine_set_graph_path(tmp_path):
     for d in ["wiki/projects", "wiki/concepts", "wiki/decisions", "wiki/sources", "raw"]:
         (tmp_path / d).mkdir(parents=True)
     engines = create_engine_set(tmp_path)
-    assert engines.graph_path == tmp_path / "wiki" / "graph.json"
+    assert engines.graph_path == tmp_path / "atlas-out" / "graph.json"
 
 
 def test_event_bus_subscribe_and_emit():

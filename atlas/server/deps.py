@@ -35,6 +35,7 @@ class EngineSet:
 
     def save_graph(self) -> None:
         """Persist the in-memory graph to disk."""
+        self.graph_path.parent.mkdir(parents=True, exist_ok=True)
         self.graph.save(self.graph_path)
 
     def load_graph(self) -> None:
