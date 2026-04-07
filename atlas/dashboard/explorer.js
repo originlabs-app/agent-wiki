@@ -198,6 +198,13 @@ function renderOverview() {
                 <span class="text-gray-500 group-hover:text-gray-300 transition-colors">Health:</span>
                 <span class="font-mono text-[10px] tracking-wider" style="color: ${healthColor}">${healthPct} ${bar}</span>
             </a>
+            <button data-action="enrich-ai"
+                class="mt-2 w-full px-3 py-1.5 text-xs text-atlas-400 border border-atlas-600/30 rounded-lg hover:bg-atlas-600/10 hover:text-atlas-300 transition-colors flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Enrich with AI
+            </button>
         </div>
     `;
 }
@@ -1137,6 +1144,70 @@ function renderCommunityView(communityId, contentEl) {
 }
 
 // ---------------------------------------------------------------------------
+// Enrich Modal
+// ---------------------------------------------------------------------------
+
+function showEnrichModal() {
+    const wsConnected = document.getElementById('ws-dot')?.classList.contains('bg-emerald-500');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'enrich-modal-overlay';
+    overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+    overlay.innerHTML = `
+        <div class="bg-surface-1 border border-surface-3 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <h3 class="text-lg font-semibold text-white mb-3">Enrich with AI</h3>
+            ${wsConnected ? `
+                <p class="text-sm text-gray-400 mb-4">
+                    An agent is connected. Send the enrichment job?
+                </p>
+                <p class="text-xs text-gray-500 mb-4">
+                    This will extract semantic relations, concepts, and cross-file connections using your connected agent's LLM.
+                </p>
+                <div class="flex gap-2 justify-end">
+                    <button data-action="close-enrich-modal" class="px-4 py-2 text-xs text-gray-400 hover:text-gray-200 bg-surface-3 rounded-lg transition-colors">Cancel</button>
+                    <button data-action="start-enrichment" class="px-4 py-2 text-xs text-white bg-atlas-600 rounded-lg hover:bg-atlas-700 transition-colors">Start Enrichment</button>
+                </div>
+            ` : `
+                <p class="text-sm text-gray-400 mb-4">
+                    To enrich with AI, run this in your agent:
+                </p>
+                <div class="bg-surface-0 border border-surface-3 rounded-lg p-3 mb-4 flex items-center justify-between">
+                    <code class="text-sm text-atlas-400 font-mono">atlas scan --deep</code>
+                    <button data-action="copy-enrich-cmd" class="text-xs text-gray-500 hover:text-white transition-colors px-2 py-1 rounded hover:bg-surface-3">Copy</button>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">
+                    Works with Claude Code, Codex, Cursor, or any MCP agent.
+                </p>
+                <div class="flex justify-end">
+                    <button data-action="close-enrich-modal" class="px-4 py-2 text-xs text-gray-400 hover:text-gray-200 bg-surface-3 rounded-lg transition-colors">Close</button>
+                </div>
+            `}
+        </div>
+    `;
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target.closest('[data-action="close-enrich-modal"]')) {
+            overlay.remove();
+        }
+        if (e.target.closest('[data-action="copy-enrich-cmd"]')) {
+            navigator.clipboard.writeText('atlas scan --deep').then(() => {
+                toast('Command copied', 'success');
+            });
+        }
+        if (e.target.closest('[data-action="start-enrichment"]')) {
+            api.post('/api/scan', { level: 'deep' }).then(() => {
+                toast('Enrichment started', 'success');
+                overlay.remove();
+            }).catch(err => {
+                toast(`Enrichment failed: ${err.message}`, 'error');
+            });
+        }
+    });
+
+    document.body.appendChild(overlay);
+}
+
+// ---------------------------------------------------------------------------
 // Event Delegation
 // ---------------------------------------------------------------------------
 
@@ -1177,6 +1248,10 @@ function attachSidebarListeners() {
                 sidebar.outerHTML = renderSidebar();
                 attachSidebarListeners();
             }
+        }
+
+        if (action === 'enrich-ai') {
+            showEnrichModal();
         }
     });
 }
