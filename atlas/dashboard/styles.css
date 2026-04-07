@@ -238,3 +238,45 @@ html:not(.dark) .wiki-content li,
 html:not(.dark) .wiki-content td { color: #475569; }
 html:not(.dark) .wiki-content pre { background: #f1f5f9; border-color: #e2e8f0; }
 html:not(.dark) .wiki-content code { background: rgba(0,0,0,0.04); color: #1e293b; }
+
+/* --- Browse toggle --- */
+.browse-toggle-active {
+    background: rgba(51, 141, 255, 0.15);
+    color: #338dff;
+}
+
+/* --- Enrich button pulse (when enrichment is in progress) --- */
+.enrich-in-progress {
+    animation: enrich-pulse 2s ease-in-out infinite;
+}
+
+@keyframes enrich-pulse {
+    0%, 100% { border-color: rgba(27, 108, 245, 0.3); }
+    50% { border-color: rgba(27, 108, 245, 0.7); }
+}
+
+/* --- Enrich modal backdrop --- */
+#enrich-modal-overlay {
+    animation: modal-fade-in 150ms ease-out;
+}
+
+@keyframes modal-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+#enrich-modal-overlay > div {
+    animation: modal-slide-up 200ms ease-out;
+}
+
+@keyframes modal-slide-up {
+    from { transform: translateY(10px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+/* --- Content panel sticky header --- */
+#explorer-content > div > .border-b:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
