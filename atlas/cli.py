@@ -107,6 +107,33 @@ def scan(
     graph.merge(extraction)
     graph.save(graph_path)
 
+    # Run community detection (Leiden if available, fallback to Louvain)
+    if graph.node_count > 0:
+        try:
+            from graspologic.partition import leiden
+            import networkx as nx
+            undirected = graph._g.to_undirected() if graph._g.is_directed() else graph._g
+            # Only cluster connected components with >1 node
+            if undirected.number_of_edges() > 0:
+                partitions = leiden(undirected)
+                for node_id, community_id in partitions.items():
+                    if node_id in graph._g:
+                        graph._g.nodes[node_id]["community"] = community_id
+                n_communities = len(set(partitions.values()))
+                typer.echo(f"Leiden clustering: {n_communities} communities detected.")
+        except ImportError:
+            try:
+                import networkx.algorithms.community as nx_comm
+                undirected = graph._g.to_undirected() if graph._g.is_directed() else graph._g
+                communities = nx_comm.louvain_communities(undirected)
+                for cid, members in enumerate(communities):
+                    for node_id in members:
+                        if node_id in graph._g:
+                            graph._g.nodes[node_id]["community"] = cid
+                typer.echo(f"Louvain clustering: {len(communities)} communities detected.")
+            except Exception:
+                typer.echo("No clustering available (install graspologic or networkx>=3.1).")
+
     # Sync wiki if it exists
     wiki_dir = root / "wiki"
     if wiki_dir.is_dir():
@@ -245,6 +272,15 @@ def ingest(
         typer.echo(f"Ingesting URL ({url_type}): {source}")
         path = asyncio.run(engine.ingest_url(source, title=title, author=author))
     else:
+        # If file is outside the project root, copy it into raw/untracked/ first
+        source_path = Path(source).resolve()
+        if not source_path.is_relative_to(r.resolve()):
+            import shutil
+            dest = r / "raw" / "untracked" / source_path.name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, dest)
+            typer.echo(f"Copied external file to {dest}")
+            source = f"raw/untracked/{source_path.name}"
         typer.echo(f"Ingesting file: {source}")
         path = engine.ingest_file(source, title=title)
 
