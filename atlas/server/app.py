@@ -422,12 +422,24 @@ def create_app(
             best_data = engines.graph.get_node_data(best_member)
             label = best_data.get("label", best_member)
 
+            # Enrich members with type and source_file for routing
+            enriched_members = []
+            for mid in members:
+                mdata = engines.graph.get_node_data(mid)
+                enriched_members.append({
+                    "id": mid,
+                    "label": mdata.get("label", mid),
+                    "type": mdata.get("type", "unknown"),
+                    "source_file": mdata.get("source_file", ""),
+                    "degree": engines.graph.degree(mid),
+                })
+
             result.append(CommunitySchema(
                 id=comm_id,
                 label=label,
                 size=n,
                 cohesion=cohesion,
-                members=members,
+                members=enriched_members,
             ))
 
         # Sort by size descending
@@ -440,8 +452,18 @@ def create_app(
     def read_file(path: str):
         """Read raw content of a scanned file (non-wiki files).
 
-        Uses the storage backend, so path traversal is blocked.
+        Only serves files that exist as nodes in the graph (i.e., were scanned).
+        Blocks hidden files (.env, .git, etc.) and path traversal.
         """
+        # Block hidden files
+        if any(part.startswith(".") for part in path.split("/")):
+            raise AtlasValidationError(f"Access denied: {path}")
+
+        # Only serve files that are in the graph (were scanned)
+        scanned_files = {data.get("source_file", "") for _, data in engines.graph._g.nodes(data=True)}
+        if path not in scanned_files and not path.startswith("wiki/"):
+            raise AtlasNotFoundError(f"File not scanned: {path}")
+
         try:
             content = engines.storage.read(path)
         except ValueError:

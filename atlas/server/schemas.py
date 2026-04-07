@@ -246,13 +246,22 @@ class FileTreeNode(BaseModel):
     children: list["FileTreeNode"] | None = None  # None for files, list for dirs
 
 
+class CommunityMemberSchema(BaseModel):
+    """A member node within a community."""
+    id: str
+    label: str
+    type: str = "unknown"
+    source_file: str = ""
+    degree: int = 0
+
+
 class CommunitySchema(BaseModel):
     """A detected community cluster."""
     id: int
     label: str
     size: int
     cohesion: float = 0.0
-    members: list[str] = Field(default_factory=list)
+    members: list[CommunityMemberSchema] = Field(default_factory=list)
 
 
 class FileReadResponse(BaseModel):

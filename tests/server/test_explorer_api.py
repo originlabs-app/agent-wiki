@@ -107,13 +107,16 @@ class TestCommunitiesEndpoint:
             assert "cohesion" in c
             assert "members" in c
 
-    def test_community_members_are_node_ids(self, client, engines):
+    def test_community_members_are_enriched(self, client, engines):
         resp = client.get("/api/communities")
         data = resp.json()
         all_node_ids = set(engines.graph.iter_node_ids())
         for c in data:
             for member in c["members"]:
-                assert member in all_node_ids
+                assert isinstance(member, dict)
+                assert member["id"] in all_node_ids
+                assert "type" in member
+                assert "degree" in member
 
 
 class TestFileReadEndpoint:

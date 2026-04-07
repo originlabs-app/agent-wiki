@@ -692,13 +692,41 @@ async function saveEdit(page, contentEl) {
     const textarea = document.getElementById('explorer-editor');
     if (!textarea) return;
 
-    const newContent = textarea.value;
+    const rawText = textarea.value;
+
+    // Strip frontmatter from raw text — server will re-add it from the frontmatter field
+    let newContent = rawText;
+    let frontmatter = page.frontmatter || {};
+    const fmMatch = rawText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+    if (fmMatch) {
+        try {
+            // Parse frontmatter from editor to pick up user edits
+            const lines = fmMatch[1].split('\n');
+            const parsed = {};
+            for (const line of lines) {
+                const idx = line.indexOf(':');
+                if (idx > 0) {
+                    const key = line.slice(0, idx).trim();
+                    let val = line.slice(idx + 1).trim();
+                    // Strip quotes
+                    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+                    // Parse arrays
+                    if (val.startsWith('[') && val.endsWith(']')) {
+                        try { val = JSON.parse(val.replace(/'/g, '"')); } catch {}
+                    }
+                    parsed[key] = val;
+                }
+            }
+            frontmatter = { ...frontmatter, ...parsed };
+        } catch {}
+        newContent = fmMatch[2];
+    }
 
     try {
         await api.post('/api/wiki/write', {
             page: page.path,
             content: newContent,
-            frontmatter: page.frontmatter || {},
+            frontmatter: frontmatter,
         });
 
         page.content = newContent;
@@ -882,8 +910,13 @@ function renderCommunityView(communityId, contentEl) {
                     ${coverage.map(m => {
                         const color = NODE_COLORS[m.type] || NODE_COLORS.unknown;
                         const isGodNode = m.degree >= 10;
+                        // Route wiki nodes to wiki view, file nodes to file view
+                        const isWikiNode = m.type && m.type.startsWith('wiki-');
+                        const href = isWikiNode
+                            ? `#/explorer/wiki/${encodeURIComponent(m.id)}`
+                            : `#/explorer/file/${encodeURIComponent(m.source_file || m.id)}`;
                         return `
-                            <a href="#/explorer/file/${encodeURIComponent(m.id)}" class="flex items-center gap-2 px-3 py-2 bg-surface-1 border border-surface-3 rounded-lg hover:bg-surface-2 transition-colors group">
+                            <a href="${href}" class="flex items-center gap-2 px-3 py-2 bg-surface-1 border border-surface-3 rounded-lg hover:bg-surface-2 transition-colors group">
                                 <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background: ${color}"></span>
                                 <span class="text-sm text-gray-300 group-hover:text-white transition-colors truncate">${escapeHtml(m.id)}</span>
                                 <span class="text-xs text-gray-500 shrink-0">(${m.degree} connections)</span>
