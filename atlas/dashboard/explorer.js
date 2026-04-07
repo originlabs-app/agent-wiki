@@ -98,20 +98,6 @@ function saveLastSelection(sel) {
 function createRenderer() {
     const renderer = new marked.Renderer();
 
-    // Wikilinks: [[target]] or [[target|display]]
-    const originalParagraph = renderer.paragraph.bind(renderer);
-    renderer.paragraph = function (text) {
-        const withLinks = text.replace(
-            /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,
-            (_, target, display) => {
-                const slug = target.trim();
-                const label = (display || target).trim();
-                return `<a href="#/explorer/wiki/${encodeURIComponent(slug)}" class="wikilink" data-target="${slug}">${label}</a>`;
-            }
-        );
-        return originalParagraph(withLinks);
-    };
-
     // Code blocks with highlight.js
     renderer.code = function (code, language) {
         const lang = language && hljs.getLanguage(language) ? language : 'plaintext';
@@ -120,6 +106,17 @@ function createRenderer() {
     };
 
     return renderer;
+}
+
+function processWikilinks(html) {
+    return html.replace(
+        /\[\[([^\]|]+?)(?:\|([^\]]+?))?\]\]/g,
+        (_, target, display) => {
+            const slug = target.trim();
+            const label = (display || target).trim();
+            return `<a href="#/explorer/wiki/${encodeURIComponent(slug)}" class="wikilink" data-target="${slug}">${escapeHtml(label)}</a>`;
+        }
+    );
 }
 
 const markedOptions = {
@@ -647,6 +644,7 @@ async function renderWikiReadMode(page, contentEl) {
     }
 
     let html = marked.parse(body, markedOptions);
+    html = processWikilinks(html);
     html = addHeadingIds(html);
 
     const fm = page.frontmatter || {};
@@ -665,25 +663,18 @@ async function renderWikiReadMode(page, contentEl) {
     const tags = fm.tags || [];
 
     contentEl.innerHTML = `
-        <div class="max-w-3xl mx-auto px-6 py-6">
-            <nav class="flex items-center gap-1.5 text-xs text-gray-500 mb-4">
-                ${breadcrumbs.map((c, i) => {
-                    const sep = i > 0 ? '<span class="text-gray-600">/</span>' : '';
-                    if (c.href) {
-                        return `${sep}<a href="${c.href}" class="hover:text-gray-300 transition-colors">${c.label}</a>`;
-                    }
-                    return `${sep}<span class="${i === breadcrumbs.length - 1 ? 'text-gray-300' : 'text-gray-500'}">${c.label}</span>`;
-                }).join('')}
-            </nav>
-
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-white mb-1">${escapeHtml(page.title)}</h1>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="text-gray-500 font-mono">${escapeHtml(page.path)}</span>
-                        ${page.type ? `<span class="px-2 py-0.5 rounded bg-surface-3 text-gray-400">${page.type}</span>` : ''}
-                    </div>
-                </div>
+        <div class="flex flex-col h-full">
+            <!-- Sticky action header -->
+            <div class="flex items-center justify-between px-6 py-2 border-b border-surface-3 bg-surface-1 shrink-0">
+                <nav class="flex items-center gap-1.5 text-xs text-gray-500">
+                    ${breadcrumbs.map((c, i) => {
+                        const sep = i > 0 ? '<span class="text-gray-600">/</span>' : '';
+                        if (c.href) {
+                            return \`\${sep}<a href="\${c.href}" class="hover:text-gray-300 transition-colors">\${c.label}</a>\`;
+                        }
+                        return \`\${sep}<span class="\${i === breadcrumbs.length - 1 ? 'text-gray-300' : 'text-gray-500'}">\${c.label}</span>\`;
+                    }).join('')}
+                </nav>
                 <div class="flex gap-2 shrink-0">
                     <button data-action="edit-page" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-surface-2 border border-surface-4 rounded-lg hover:bg-surface-3 transition-colors flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -706,29 +697,42 @@ async function renderWikiReadMode(page, contentEl) {
                 </div>
             </div>
 
-            ${tags.length ? `
-                <div class="flex gap-1 mt-1.5 mb-4">
-                    ${tags.map(t => `<span class="px-1.5 py-0.5 bg-surface-3 rounded text-[10px] text-gray-400">${t}</span>`).join('')}
-                </div>
-            ` : ''}
-
-            ${fmEntries.length ? `
-                <div class="bg-surface-2 rounded-lg px-4 py-3 mb-4 text-xs">
-                    <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-                        ${fmEntries.map(([key, value]) => {
-                            const display = Array.isArray(value)
-                                ? value.map(v => `<span class="px-1.5 py-0.5 bg-surface-3 rounded text-gray-400">${v}</span>`).join(' ')
-                                : `<span class="text-gray-300">${value}</span>`;
-                            return `<span class="text-gray-500">${key}:</span><span>${display}</span>`;
-                        }).join('')}
+            <!-- Scrollable content -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="max-w-3xl mx-auto px-6 py-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white mb-1">${escapeHtml(page.title)}</h1>
+                        <div class="flex items-center gap-2 text-xs mt-1">
+                            <span class="text-gray-500 font-mono">${escapeHtml(page.path)}</span>
+                            ${page.type ? `<span class="px-2 py-0.5 rounded bg-surface-3 text-gray-400">${page.type}</span>` : ''}
+                        </div>
                     </div>
+
+                    ${tags.length ? `
+                        <div class="flex gap-1 mt-3 mb-4">
+                            ${tags.map(t => `<span class="px-1.5 py-0.5 bg-surface-3 rounded text-[10px] text-gray-400">${t}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    ${fmEntries.length ? `
+                        <div class="bg-surface-2 rounded-lg px-4 py-3 mb-4 text-xs">
+                            <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                                ${fmEntries.map(([key, value]) => {
+                                    const display = Array.isArray(value)
+                                        ? value.map(v => `<span class="px-1.5 py-0.5 bg-surface-3 rounded text-gray-400">${v}</span>`).join(' ')
+                                        : `<span class="text-gray-300">${value}</span>`;
+                                    return `<span class="text-gray-500">${key}:</span><span>${display}</span>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="wiki-content">${html}</div>
+
+                    <div id="explorer-backlinks" class="mt-8 pt-4 border-t border-surface-3"></div>
+                    <div id="explorer-neighbors" class="mt-4 pt-4 border-t border-surface-3"></div>
                 </div>
-            ` : ''}
-
-            <div class="wiki-content">${html}</div>
-
-            <div id="explorer-backlinks" class="mt-8 pt-4 border-t border-surface-3"></div>
-            <div id="explorer-neighbors" class="mt-4 pt-4 border-t border-surface-3"></div>
+            </div>
         </div>
     `;
 
@@ -861,6 +865,7 @@ function updatePreview(rawContent, previewEl) {
     }
 
     let html = marked.parse(body, markedOptions);
+    html = processWikilinks(html);
     html = addHeadingIds(html);
     previewEl.innerHTML = html;
 }
@@ -963,6 +968,7 @@ function renderFileReadMode(fileData, contentEl) {
     let renderedContent;
     if (isMarkdown) {
         let html = marked.parse(content, markedOptions);
+        html = processWikilinks(html);
         html = addHeadingIds(html);
         renderedContent = `<div class="wiki-content">${html}</div>`;
     } else if (isCode) {
@@ -976,24 +982,16 @@ function renderFileReadMode(fileData, contentEl) {
     const graphNode = findGraphNode(path);
 
     contentEl.innerHTML = `
-        <div class="max-w-3xl mx-auto px-6 py-6">
-            <nav class="flex items-center gap-1.5 text-xs text-gray-500 mb-4">
-                <a href="#/explorer" class="hover:text-gray-300 transition-colors">Explorer</a>
-                ${path.split('/').map((part, i, arr) => `
-                    <span class="text-gray-600">/</span>
-                    <span class="${i === arr.length - 1 ? 'text-gray-300' : 'text-gray-500'}">${part}</span>
-                `).join('')}
-            </nav>
-
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-white mb-1">${escapeHtml(name)}</h1>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="text-gray-500 font-mono">${escapeHtml(path)}</span>
-                        <span class="px-2 py-0.5 rounded bg-surface-3 text-gray-400">${type}</span>
-                        ${graphNode ? `<span class="text-gray-500">${graphNode.degree} connections</span>` : ''}
-                    </div>
-                </div>
+        <div class="flex flex-col h-full">
+            <!-- Sticky action header -->
+            <div class="flex items-center justify-between px-6 py-2 border-b border-surface-3 bg-surface-1 shrink-0">
+                <nav class="flex items-center gap-1.5 text-xs text-gray-500">
+                    <a href="#/explorer" class="hover:text-gray-300 transition-colors">Explorer</a>
+                    ${path.split('/').map((part, i, arr) => `
+                        <span class="text-gray-600">/</span>
+                        <span class="${i === arr.length - 1 ? 'text-gray-300' : 'text-gray-500'}">${part}</span>
+                    `).join('')}
+                </nav>
                 <div class="flex gap-2 shrink-0">
                     <a href="#/graph/${encodeURIComponent(path)}" class="px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-surface-2 border border-surface-4 rounded-lg hover:bg-surface-3 transition-colors flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1009,7 +1007,21 @@ function renderFileReadMode(fileData, contentEl) {
                 </div>
             </div>
 
-            ${renderedContent}
+            <!-- Scrollable content -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="max-w-3xl mx-auto px-6 py-6">
+                    <div class="mb-4">
+                        <h1 class="text-2xl font-bold text-white mb-1">${escapeHtml(name)}</h1>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="text-gray-500 font-mono">${escapeHtml(path)}</span>
+                            <span class="px-2 py-0.5 rounded bg-surface-3 text-gray-400">${type}</span>
+                            ${graphNode ? `<span class="text-gray-500">${graphNode.degree} connections</span>` : ''}
+                        </div>
+                    </div>
+
+                    ${renderedContent}
+                </div>
+            </div>
         </div>
     `;
 }
@@ -1066,7 +1078,7 @@ function renderCommunityView(communityId, contentEl) {
         <div class="max-w-3xl mx-auto px-6 py-6">
             <div class="flex items-start justify-between mb-6">
                 <div>
-                    <h1 class="text-2xl font-bold text-white mb-1">${escapeHtml(community.label)}</h1>
+                    <h1 class="text-2xl font-bold text-white mb-1">${escapeHtml(humanizeCommunityLabel(community.label))}</h1>
                     <div class="flex items-center gap-2 text-xs text-gray-500">
                         <span>${community.size} nodes</span>
                         <span class="text-gray-600">&middot;</span>
@@ -1095,7 +1107,7 @@ function renderCommunityView(communityId, contentEl) {
                         return `
                             <a href="${href}" class="flex items-center gap-2 px-3 py-2 bg-surface-1 border border-surface-3 rounded-lg hover:bg-surface-2 transition-colors group">
                                 <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background: ${color}"></span>
-                                <span class="text-sm text-gray-300 group-hover:text-white transition-colors truncate">${escapeHtml(m.id)}</span>
+                                <span class="text-sm text-gray-300 group-hover:text-white transition-colors truncate">${escapeHtml(humanizeCommunityLabel(m.id))}</span>
                                 <span class="text-xs text-gray-500 shrink-0">(${m.degree} connections)</span>
                                 ${isGodNode ? '<span class="text-[10px] text-amber-400 shrink-0">god node</span>' : ''}
                             </a>
