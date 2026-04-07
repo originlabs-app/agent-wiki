@@ -20,12 +20,20 @@ app = typer.Typer(
 _DEFAULT_OUT = "atlas-out"
 
 
-def _resolve_root(path: str) -> Path:
-    """Resolve the target directory and validate it exists."""
+def _resolve_root(path: str, *, base: Path | None = None) -> Path:
+    """Resolve the target directory and validate it exists and is within base."""
     p = Path(path).resolve()
     if not p.exists():
         typer.echo(f"Error: path does not exist: {p}", err=True)
         raise typer.Exit(code=1)
+    # Security: prevent scanning outside the project root
+    if base is not None:
+        base_path = base.resolve() if hasattr(base, "resolve") else Path(base).resolve()
+        try:
+            p.relative_to(base_path)
+        except ValueError:
+            typer.echo(f"Error: path '{path}' is outside the allowed directory '{base}'", err=True)
+            raise typer.Exit(code=1)
     return p
 
 
@@ -63,6 +71,8 @@ def scan(
     path: str = typer.Argument(..., help="Directory or file to scan."),
     update: bool = typer.Option(False, "--update", "-u", help="Incremental scan — only re-extract changed files."),
     force: bool = typer.Option(False, "--force", "-f", help="Force full re-extraction, ignore cache."),
+    # Security: optionally restrict scan to a subdirectory (env: ATLAS_SCAN_ROOT)
+    scan_root: str | None = typer.Option(None, "--scan-root", help="Restrict scan to this directory (env: ATLAS_SCAN_ROOT)."),
 ) -> None:
     """Scan a directory, extract a knowledge graph, sync wiki."""
     from atlas.core.cache import CacheEngine
@@ -72,7 +82,10 @@ def scan(
     from atlas.core.storage import LocalStorage
     from atlas.core.wiki import WikiEngine
 
-    root = _resolve_root(path)
+    # Use ATLAS_SCAN_ROOT env or --scan-root as the boundary for path traversal protection
+    import os
+    boundary = os.environ.get("ATLAS_SCAN_ROOT", scan_root)
+    root = _resolve_root(path, base=Path(boundary) if boundary else None)
     out = _out_dir(root)
 
     storage = LocalStorage(root=root)
