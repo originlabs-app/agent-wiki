@@ -677,9 +677,9 @@ async function renderWikiReadMode(page, contentEl) {
                     ${breadcrumbs.map((c, i) => {
                         const sep = i > 0 ? '<span class="text-gray-600">/</span>' : '';
                         if (c.href) {
-                            return \`\${sep}<a href="\${c.href}" class="hover:text-gray-300 transition-colors">\${c.label}</a>\`;
+                            return `${sep}<a href="${c.href}" class="hover:text-gray-300 transition-colors">${c.label}</a>`;
                         }
-                        return \`\${sep}<span class="\${i === breadcrumbs.length - 1 ? 'text-gray-300' : 'text-gray-500'}">\${c.label}</span>\`;
+                            return `${sep}<span class="${i === breadcrumbs.length - 1 ? 'text-gray-300' : 'text-gray-500'}">${c.label}</span>`;
                     }).join('')}
                 </nav>
                 <div class="flex gap-2 shrink-0">
