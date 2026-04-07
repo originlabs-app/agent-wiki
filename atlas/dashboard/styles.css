@@ -1,0 +1,282 @@
+/* ============================================================
+   Atlas Dashboard — Custom Styles
+   Beyond Tailwind: animations, graph node colors, transitions
+   ============================================================ */
+
+/* --- Nav tabs --- */
+.nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #9ca3af;
+    transition: all 150ms ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nav-tab:hover {
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab.active {
+    color: #338dff;
+    background: rgba(51, 141, 255, 0.1);
+}
+
+/* --- Graph node colors by type --- */
+.graph-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+:root {
+    --node-code:        #22d3ee;
+    --node-document:    #a78bfa;
+    --node-paper:       #f472b6;
+    --node-image:       #fb923c;
+    --node-wiki-page:   #338dff;
+    --node-wiki-concept:#34d399;
+    --node-wiki-decision:#fbbf24;
+    --node-wiki-source: #94a3b8;
+    --node-default:     #6b7280;
+
+    --edge-extracted:   rgba(100, 160, 255, 0.4);
+    --edge-inferred:    rgba(251, 191, 36, 0.3);
+    --edge-ambiguous:   rgba(248, 113, 113, 0.3);
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Toast animations --- */
+.toast-enter {
+    animation: toast-slide-in 200ms ease-out;
+}
+.toast-exit {
+    animation: toast-slide-out 200ms ease-in forwards;
+}
+
+@keyframes toast-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes toast-slide-out {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(100%); opacity: 0; }
+}
+
+/* --- Wiki markdown styles --- */
+.wiki-content h1 { font-size: 1.75rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #f3f4f6; }
+.wiki-content h2 { font-size: 1.375rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #e5e7eb; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.375rem; }
+.wiki-content h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #d1d5db; }
+.wiki-content p  { margin-bottom: 0.75rem; line-height: 1.7; color: #d1d5db; }
+.wiki-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.wiki-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.wiki-content li { margin-bottom: 0.25rem; color: #d1d5db; }
+.wiki-content a  { color: #338dff; text-decoration: underline; text-underline-offset: 2px; }
+.wiki-content a:hover { color: #59b0ff; }
+.wiki-content code { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: rgba(255,255,255,0.06); padding: 0.15em 0.35em; border-radius: 0.25rem; color: #e5e7eb; }
+.wiki-content pre { background: #111118; border: 1px solid rgba(255,255,255,0.06); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; overflow-x: auto; }
+.wiki-content pre code { background: transparent; padding: 0; font-size: 0.8125rem; }
+.wiki-content blockquote { border-left: 3px solid #338dff; padding-left: 1rem; margin: 0.75rem 0; color: #9ca3af; font-style: italic; }
+.wiki-content table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.wiki-content th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid rgba(255,255,255,0.1); font-weight: 600; color: #e5e7eb; }
+.wiki-content td { padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: #d1d5db; }
+.wiki-content hr { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 1.5rem 0; }
+
+/* --- Wikilink styling in rendered markdown --- */
+.wikilink {
+    color: #34d399;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(52, 211, 153, 0.4);
+    cursor: pointer;
+    transition: all 150ms;
+}
+.wikilink:hover {
+    color: #6ee7b7;
+    border-bottom-color: #6ee7b7;
+}
+.wikilink.broken {
+    color: #f87171;
+    border-bottom-color: rgba(248, 113, 113, 0.4);
+}
+
+/* --- Explorer layout --- */
+#explorer-sidebar {
+    transition: width 200ms ease;
+}
+
+@media (max-width: 768px) {
+    #explorer-sidebar {
+        width: 48px !important;
+        overflow: hidden;
+    }
+    #explorer-sidebar .text-xs,
+    #explorer-sidebar .text-\[10px\],
+    #explorer-sidebar .text-\[9px\],
+    #explorer-sidebar a span.truncate,
+    #explorer-sidebar span.text-gray-400 {
+        display: none;
+    }
+}
+
+/* --- File tree indentation lines --- */
+.explorer-tree-line {
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    margin-left: 18px;
+}
+
+/* --- Explorer editor --- */
+#explorer-editor {
+    tab-size: 4;
+    -moz-tab-size: 4;
+}
+
+#explorer-editor:focus {
+    box-shadow: inset 0 0 0 1px rgba(51, 141, 255, 0.3);
+}
+
+/* --- Explorer split view resize handle --- */
+.explorer-split-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 150ms;
+}
+.explorer-split-handle:hover {
+    background: rgba(51, 141, 255, 0.3);
+}
+
+/* --- Community cohesion bar --- */
+.cohesion-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+.cohesion-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #1b6cf5, #34d399);
+    transition: width 300ms ease;
+}
+
+/* --- Confidence badges --- */
+.badge-extracted  { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+.badge-inferred   { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.badge-ambiguous  { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+
+/* --- Health score ring --- */
+.health-ring {
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+.health-ring-bg {
+    stroke: rgba(255, 255, 255, 0.06);
+}
+.health-ring-fill {
+    transition: stroke-dashoffset 800ms ease;
+}
+
+/* --- Audit card hover --- */
+.audit-card {
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.audit-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .nav-tab span:not(.sr-only) {
+        /* Only icons on mobile, labels hidden via Tailwind responsive classes */
+    }
+}
+
+/* --- Light mode overrides --- */
+html:not(.dark) body {
+    background: #f8fafc;
+    color: #1e293b;
+}
+html:not(.dark) .nav-tab {
+    color: #64748b;
+}
+html:not(.dark) .nav-tab:hover {
+    color: #1e293b;
+    background: rgba(0, 0, 0, 0.04);
+}
+html:not(.dark) .nav-tab.active {
+    color: #1b6cf5;
+    background: rgba(27, 108, 245, 0.08);
+}
+html:not(.dark) .wiki-content h1,
+html:not(.dark) .wiki-content h2,
+html:not(.dark) .wiki-content h3 { color: #1e293b; }
+html:not(.dark) .wiki-content p,
+html:not(.dark) .wiki-content li,
+html:not(.dark) .wiki-content td { color: #475569; }
+html:not(.dark) .wiki-content pre { background: #f1f5f9; border-color: #e2e8f0; }
+html:not(.dark) .wiki-content code { background: rgba(0,0,0,0.04); color: #1e293b; }
+
+/* --- Browse toggle --- */
+.browse-toggle-active {
+    background: rgba(51, 141, 255, 0.15);
+    color: #338dff;
+}
+
+/* --- Enrich button pulse (when enrichment is in progress) --- */
+.enrich-in-progress {
+    animation: enrich-pulse 2s ease-in-out infinite;
+}
+
+@keyframes enrich-pulse {
+    0%, 100% { border-color: rgba(27, 108, 245, 0.3); }
+    50% { border-color: rgba(27, 108, 245, 0.7); }
+}
+
+/* --- Enrich modal backdrop --- */
+#enrich-modal-overlay {
+    animation: modal-fade-in 150ms ease-out;
+}
+
+@keyframes modal-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+#enrich-modal-overlay > div {
+    animation: modal-slide-up 200ms ease-out;
+}
+
+@keyframes modal-slide-up {
+    from { transform: translateY(10px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+/* --- Content panel sticky header --- */
+#explorer-content > div > .border-b:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}

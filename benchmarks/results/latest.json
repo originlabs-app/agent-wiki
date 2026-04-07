@@ -1,0 +1,30 @@
+{
+  "scan": {
+    "files_scanned": 20,
+    "time_total_ms": 1.4215420233085752,
+    "time_per_file_ms": 0.07107710116542876,
+    "nodes_extracted": 40,
+    "edges_extracted": 20
+  },
+  "graph_merge": {
+    "nodes_merged": 100,
+    "edges_merged": 100,
+    "time_ms": 0.34324999433010817,
+    "time_per_1k_nodes_ms": 3.4324999433010817
+  },
+  "query": {
+    "graph_nodes": 500,
+    "graph_edges": 1500,
+    "p95_ms": 0.35020802170038223,
+    "avg_ms": 0.14055820647627115,
+    "min_ms": 0.11083297431468964,
+    "max_ms": 0.35020802170038223
+  },
+  "wiki_sync": {
+    "pages_synced": 20,
+    "graph_changes": 40,
+    "suggestions": 0,
+    "time_ms": 5.212916061282158,
+    "time_per_page_ms": 0.2606458030641079
+  }
+}

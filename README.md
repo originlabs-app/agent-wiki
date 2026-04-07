@@ -1,178 +1,189 @@
-# Agent Wiki
+# Atlas — Knowledge Engine for AI Agents
 
-A Karpathy-style knowledge base that any LLM agent can read and maintain.
+[![CI](https://github.com/originlabs-app/atlas/actions/workflows/ci.yml/badge.svg)](https://github.com/originlabs-app/atlas/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/atlas-ai.svg)](https://pypi.org/project/atlas-ai/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-You drop sources, the AI compiles a wiki, and knowledge compounds over time.
+> **Scan anything. Know everything. Remember forever.**
 
-## Prerequisites
+Atlas transforms your codebase, documents, and research into a persistent knowledge graph. AI agents query it for context instead of re-reading thousands of files every session.
 
-Requires: `bash`, `git`. Optional: `rg` ([ripgrep](https://github.com/BurntSushi/ripgrep)) for faster search.
-
-## Quick start
+## What It Does
 
 ```bash
-git clone https://github.com/originlabs-app/agent-wiki.git
-cd agent-wiki
+# Point it at any repo
+atlas scan ./my-project
+
+# Ask questions
+atlas query "how does auth connect to billing?"
+atlas path "UserModel" "PaymentGateway"
+atlas explain "RateLimiter"
+
+# See what's weird
+atlas god-nodes        # Most connected concepts
+atlas surprises        # Unexpected cross-boundary connections
+atlas audit            # Health score, contradictions, stale pages
 ```
 
-Open in your agent (Claude Code, Codex, Cursor, Hermes) and say:
+## Quick Start
 
-```
-Read INSTALL.md and set up agent-wiki.
-```
+```bash
+pip install atlas-ai
 
-Then say:
+# Scan your project
+atlas scan ./your-repo
 
-```
-/agent-wiki-start
-```
-
-That's it. The agent reads the wiki, briefs you, and you're working.
-
----
-
-## How to use
-
-### The daily workflow
-
-```
-/agent-wiki-start       ← begin your session
-       ↓
-    work normally
-       ↓
-/agent-wiki-progress    ← optional mid-session checkpoint
-       ↓
-    keep working
-       ↓
-/agent-wiki-finish      ← end your session, write back to wiki
+# That's it. The knowledge graph is at ./your-repo/atlas-out/graph.json.
 ```
 
-### When you have a source to add
+## Core Features
 
-```
-/agent-wiki-ingest      ← paste a URL, text, or file path
-```
-
-The agent saves it to `raw/`, reads it, asks you socratic questions about what it means, compiles it into the wiki, and cross-links with existing pages.
-
-### Weekly health check
-
-```
-/agent-wiki-health      ← deep audit of the wiki
-```
-
-Finds contradictions, orphan pages, stale content, dead links, unsourced claims, and suggests new pages to fill gaps.
-
----
-
-## All commands
-
-### Skill commands (you say these to your agent)
-
-| Command | When | What it does |
-|---------|------|-------------|
-| `/agent-wiki-start` | Beginning of session | Reads wiki, detects tensions, briefs you, asks socratic questions, proposes a plan |
-| `/agent-wiki-ingest` | When you have a source | Saves to raw/, compiles into wiki, cross-links, flags contradictions |
-| `/agent-wiki-progress` | Mid-session | Quick checkpoint — scope drift detection, save suggestions, health check |
-| `/agent-wiki-finish` | End of session | Proposes write-back, asks what changed, updates wiki, logs |
-| `/agent-wiki-health` | Weekly | Deep audit — contradictions, orphans, staleness, confidence review, repo vs wiki drift, web search to fill gaps |
-
-### CLI commands (the engine behind the skill)
-
-| Command | What it does |
+| Feature | What it does |
 |---------|-------------|
-| `./tools/wikictl init` | Create directory structure and default files |
-| `./tools/wikictl status` | Health summary — pages count, stale detection |
-| `./tools/wikictl ingest "<project>" <source>` | Register source, update project page, move to ingested/ |
-| `./tools/wikictl query "<terms>"` | Search across wiki/ and raw/ |
-| `./tools/wikictl compile [project]` | Batch-ingest all pending sources in raw/untracked/ |
-| `./tools/wikictl file-back <project> <title> [--type]` | Save an answer/output back into the wiki |
-| `./tools/wikictl lint` | Check structure — missing files, broken links |
-| `./tools/wikictl heal` | Rebuild wiki/index.md (all 4 tables) |
-| `./tools/wikictl sync <agent> <op> "<desc>"` | End-of-session write-back + lint + status |
-| `./tools/wikictl log <agent> <op> "<desc>"` | Append entry to wiki/log.md |
-| `./tools/wikictl paths` | Show resolved storage paths |
+| **Scan** | Extract a knowledge graph from code, docs, and images |
+| **Query** | Traverse the graph from any concept (BFS/DFS) |
+| **Path** | Find connections between two concepts |
+| **Explain** | Get a concept's type, summary, and neighbors |
+| **God Nodes** | Find the most connected ideas in your codebase |
+| **Surprises** | Discover unexpected cross-boundary relationships |
+| **Audit** | Health score, orphans, contradictions, staleness |
+| **Ingest** | Add URLs, files, or pasted text to the knowledge base |
+| **Migrate** | Zero-loss migration from agent-wiki v1 |
+| **Serve** | REST API + WebSocket + Dashboard with `atlas serve` |
 
-You don't usually call wikictl directly — the skill commands call it for you.
-
----
-
-## Two modes
-
-### Mode 1: In-Wiki
-
-Open your agent in this repo. Work directly in `raw/`, `wiki/`, `outputs/`. The repo is your wiki.
-
-### Mode 2: Second-Brain
-
-Open your agent in another repo (client code, project, etc.). Agent-wiki lives alongside as shared memory. Your code stays in the code repo. Durable knowledge goes into agent-wiki.
-
-Both modes use the same 5 commands.
-
----
-
-## Folder structure
+## How It Works
 
 ```
-agent-wiki/
-├── raw/
-│   ├── untracked/     ← drop sources here
-│   └── ingested/      ← processed sources land here
-├── wiki/
-│   ├── index.md       ← table of contents (read first)
-│   ├── log.md         ← operation history
-│   ├── projects/      ← one page per project
-│   ├── sources/       ← one page per ingested source
-│   └── decisions/     ← architecture / business decisions
-│   └── concepts/      ← thematic pages (topics spanning multiple sources)
-├── outputs/           ← generated answers, reports, research
-├── tools/
-│   ├── wikictl        ← CLI engine (bash)
-│   └── mcp/           ← optional MCP transport (Node.js)
-├── skills/            ← one directory per command (agents read these)
-│   ├── agent-wiki-start/SKILL.md
-│   ├── agent-wiki-ingest/SKILL.md
-│   ├── agent-wiki-progress/SKILL.md
-│   ├── agent-wiki-finish/SKILL.md
-│   └── agent-wiki-health/SKILL.md
-├── AGENTS.md          ← schema and rules
-├── CLAUDE.md          ← Claude Code entry point
-├── INSTALL.md         ← agent-driven setup
-└── README.md          ← you are here
+Code/Docs/Images → Scanner (AST + Semantic) → Extraction
+       ↓
+   GraphEngine (NetworkX) ←→ Linker ←→ Wiki (Markdown)
+       ↓
+   Analyzer (communities, god nodes, surprises, contradictions)
 ```
 
-## Key files
+1. **Scan** extracts structure via tree-sitter (code) and semantic analysis (docs)
+2. **Graph** builds and merges NetworkX graphs with confidence scoring
+3. **Wiki** syncs bidirectionally — wiki pages update the graph, graph suggests wiki improvements
+4. **Query** traverses the graph (BFS/DFS, pathfinding, community detection)
+5. **Audit** scores health, finds orphans, contradictions, and stale content
 
-| File | Who reads it | Purpose |
-|------|-------------|---------|
-| `skills/agent-wiki-*/SKILL.md` | Your agent | One skill per command — start, ingest, progress, finish, health |
-| `AGENTS.md` | Your agent | Schema — folder structure, rules, operations |
-| `INSTALL.md` | Your agent | First-time setup — detects tools, asks questions, installs skill |
-| `CLAUDE.md` | Claude Code | Entry point that points to skills/ and AGENTS.md |
-| `wiki/index.md` | Everyone | Table of contents for the compiled wiki |
+## Why Atlas?
 
----
+| Problem | Before Atlas | After Atlas |
+|---------|-------------|-------------|
+| "How does auth connect to billing?" | Read 50 files, grep everywhere | `atlas path auth billing` |
+| Onboarding a new dev | 2 weeks of reading | `atlas scan .` → `atlas god-nodes` |
+| "What changed?" | Diff every file | `atlas scan --update .` → diff the graph |
+| Knowledge in chat | Lost when session ends | Persisted in wiki/ directory, compounds |
+| Contradictions | Nobody notices for months | `atlas audit` flags them |
 
-## MCP (optional)
-
-If your agent speaks MCP:
+## Installation
 
 ```bash
-cd tools && npm install && npm run mcp
+# Minimal (scan, query, wiki, audit)
+pip install atlas-ai
+
+# With AST parsing (tree-sitter)
+pip install "atlas-ai[ast]"
+
+# With server and dashboard
+pip install "atlas-ai[server]"
+
+# Everything
+pip install "atlas-ai[all]"
 ```
 
----
+## For AI Agents
 
-## Notes
+Atlas installs as skills for Claude Code, Codex CLI, Cursor, and Hermes:
 
-- Obsidian is optional. Open the repo as a vault for graph view and backlinks.
-- No database. No embeddings. Pure markdown.
-- The agent writes the wiki. You read it and ask questions.
+```python
+from atlas.install import install
+report = install()
+print(report["platforms"])  # ["claude", "codex", "hermes"]
+```
 
-## Credits
+## Developer Setup
 
-Inspired by [Andrej Karpathy's LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
+```bash
+git clone https://github.com/originlabs-app/atlas.git
+cd atlas
+uv sync --all-extras
+
+# Run tests
+uv run pytest -v
+
+# Lint + format
+uv run ruff check atlas/ tests/
+uv run ruff format atlas/ tests/
+
+# Type check
+uv run pyright atlas/
+```
+
+## Architecture
+
+```
+atlas/
+├── core/          # Engine — models, storage, scanner, graph, wiki, linker, analyzer, ingest
+├── server/        # FastAPI REST + WebSocket + Dashboard
+├── skills/        # Agent skill files (agentskills.io format)
+├── cli.py         # Typer CLI
+├── install.py     # Multi-platform installer
+└── migrate.py     # agent-wiki v1 → Atlas v2 migration
+
+tests/             # 265+ tests
+├── core/          # Unit tests per module
+├── server/        # API contract + integration tests
+├── fixtures/corpus/  # 15 realistic files for testing
+└── test_cli_integration.py  # E2E workflow tests
+
+benchmarks/        # Reproducible performance benchmarks
+.github/workflows/ # CI (lint, test, typecheck, build, benchmarks, publish)
+```
+
+## Command Reference
+
+| Command | Description |
+|---------|-------------|
+| `atlas scan <path>` | Scan a directory, extract knowledge graph |
+| `atlas scan <path> --update` | Incremental scan (only changed files) |
+| `atlas query <concept>` | Graph traversal from a concept |
+| `atlas path <A> <B>` | Shortest path between two concepts |
+| `atlas explain <concept>` | Single concept details + neighbors |
+| `atlas god-nodes` | Most connected nodes |
+| `atlas surprises` | Most surprising cross-community edges |
+| `atlas audit` | Full health audit |
+| `atlas stats` | Graph statistics |
+| `atlas ingest <url|file>` | Add a source to the knowledge base |
+| `atlas export json` | Export graph to JSON |
+| `atlas migrate` | Migrate from agent-wiki v1 |
+| `atlas serve` | Start REST API + WebSocket + Dashboard |
+| `atlas hook install` | Install git hooks for auto-rebuild |
+
+## Performance
+
+Benchmarks run weekly on CI. Current thresholds:
+
+| Operation | Threshold | Target |
+|-----------|-----------|--------|
+| Scan | < 1200ms/file | < 800ms/file |
+| Graph merge | < 100ms/1K nodes | < 50ms/1K nodes |
+| Query (p95) | < 100ms | < 50ms |
+| Wiki sync | < 50ms/page | < 20ms/page |
+
+Run benchmarks locally: `python benchmarks/run_all.py`
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.
+
+## Contributing
+
+1. Fork and create a branch from `main`
+2. Write failing tests first (TDD)
+3. Implement, pass tests, lint, typecheck
+4. Open a PR with a clear description
+
+All PRs require: CI green, reviewer approval, no coverage regression below 80%.

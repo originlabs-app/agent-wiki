@@ -1,0 +1,25 @@
+# Atlas agent-wiki — Progress Log
+
+## 2026-04-07 — Plan 7: Atlas Projects
+
+**Mission ID:** mis_$(openssl rand -hex 4)
+**Branch:** feat/atlas-projects
+**Goal:** Multi-project support — ProjectRegistry, Welcome Screen, Project Switcher, `atlas .` CLI
+
+### Tasks
+- [ ] Task 1: ProjectRegistry core module (atlas/core/registry.py)
+- [ ] Task 2: Server schemas for projects
+- [ ] Task 3: deps.py ScanStatus
+- [ ] Task 4: 5 new API routes
+- [ ] Task 5: Dashboard Welcome Screen
+- [ ] Task 6: Dashboard Project Switcher
+- [ ] Task 7: CLI commands (atlas ., atlas open, atlas projects)
+- [ ] Task 8: Auto-rescan tests
+
+### Milestones
+- [ ] M1: Core + Server (Tasks 1-4)
+- [ ] M2: Dashboard (Tasks 5-6)
+- [ ] M3: CLI + Final (Tasks 7-8)
+
+### Test suite baseline
+278 tests passing (Plans 1-6 merged on main)

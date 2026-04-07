@@ -31,10 +31,11 @@ class EngineSet:
 
     @property
     def graph_path(self) -> Path:
-        return self.root / "wiki" / "graph.json"
+        return self.root / "atlas-out" / "graph.json"
 
     def save_graph(self) -> None:
         """Persist the in-memory graph to disk."""
+        self.graph_path.parent.mkdir(parents=True, exist_ok=True)
         self.graph.save(self.graph_path)
 
     def load_graph(self) -> None:
@@ -90,3 +91,34 @@ class EventBus:
     def emit(self, event: str, data: dict[str, Any] | None = None) -> None:
         for handler in self._handlers.get(event, []):
             handler(data or {})
+
+
+class ScanStatus:
+    """Tracks the current scan operation progress for the dashboard progress bar."""
+
+    def __init__(self):
+        self.active: bool = False
+        self.progress: float = 0.0
+        self.message: str = "Idle"
+
+    def start(self, message: str = "Scanning...") -> None:
+        self.active = True
+        self.progress = 0.0
+        self.message = message
+
+    def update(self, progress: float, message: str | None = None) -> None:
+        self.progress = min(progress, 1.0)
+        if message is not None:
+            self.message = message
+
+    def finish(self) -> None:
+        self.active = False
+        self.progress = 1.0
+        self.message = "Complete"
+
+    def to_dict(self) -> dict:
+        return {
+            "active": self.active,
+            "progress": self.progress,
+            "message": self.message,
+        }
