@@ -275,7 +275,7 @@ function showNodeDetail(nodeId) {
 
 export async function init(container, params) {
     container.innerHTML = `
-        <div class="h-full flex">
+        <div class="flex" style="height: calc(100vh - 3.5rem);">
             <!-- Graph canvas -->
             <div class="flex-1 relative">
                 <!-- Toolbar -->
