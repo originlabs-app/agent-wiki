@@ -316,3 +316,50 @@ def stats(
     typer.echo(f"Health:      {s.health_score}")
     for conf, count in sorted(s.confidence_breakdown.items()):
         typer.echo(f"  {conf}: {count}")
+
+
+# ---------------------------------------------------------------------------
+# atlas export
+# ---------------------------------------------------------------------------
+
+@app.command()
+def export(
+    fmt: str = typer.Argument("json", help="Export format: json"),
+    root: str = typer.Option(".", "--root", "-r", help="Project root directory."),
+) -> None:
+    """Export the knowledge graph to a file."""
+    import json as _json
+
+    r = _resolve_root(root)
+    graph = _load_graph(r)
+    out = _out_dir(r)
+
+    data = graph.to_dict()
+    dest = out / f"graph.{fmt}"
+    dest.write_text(_json.dumps(data, indent=2, default=str))
+    typer.echo(f"Exported graph to {dest}")
+
+
+# ---------------------------------------------------------------------------
+# atlas migrate
+# ---------------------------------------------------------------------------
+
+@app.command()
+def migrate_cmd(
+    root: str = typer.Option(".", "--root", "-r", help="Project root directory."),
+    no_skills: bool = typer.Option(False, "--no-skills", help="Skip Atlas skills installation."),
+) -> None:
+    """Migrate from agent-wiki v1 to Atlas v2."""
+    from atlas.migrate import migrate as do_migrate
+
+    r = _resolve_root(root)
+    report = do_migrate(r, install_skills=not no_skills)
+    
+    typer.echo(f"Migrated: {report.get('project', 'unknown') or 'unknown project'}")
+    typer.echo(f"Pages migrated: {report.get('pages_migrated', 0)}")
+    typer.echo(f"Sources: {report.get('sources', 0)}")
+    typer.echo(f"Graph nodes: {report.get('graph_nodes', 0)}")
+    if not report.get('success'):
+        typer.echo("Migration completed with warnings:", err=True)
+        for w in report.get("warnings", []):
+            typer.echo(f"  ⚠ {w}", err=True)

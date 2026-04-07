@@ -265,6 +265,10 @@ class GraphEngine:
             confidence_breakdown=breakdown,
         )
 
+    def to_dict(self) -> dict:
+        """Return the graph as a JSON-serializable dict."""
+        return nx.node_link_data(self._g)
+
     def save(self, path: Path | str) -> None:
         path = Path(path)
         data = nx.node_link_data(self._g)
