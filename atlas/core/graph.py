@@ -237,6 +237,8 @@ class GraphEngine:
                     relation=ed.get("relation", "related"),
                     confidence=ed.get("confidence", "EXTRACTED"),
                     confidence_score=ed.get("confidence_score", 1.0),
+                    source_file=ed.get("source_file"),
+                    weight=ed.get("weight", 1.0),
                 ))
             elif self._g.has_edge(b, a):
                 ed = self._g.edges[b, a]
@@ -245,6 +247,8 @@ class GraphEngine:
                     relation=ed.get("relation", "related"),
                     confidence=ed.get("confidence", "EXTRACTED"),
                     confidence_score=ed.get("confidence_score", 1.0),
+                    source_file=ed.get("source_file"),
+                    weight=ed.get("weight", 1.0),
                 ))
         return edges
 

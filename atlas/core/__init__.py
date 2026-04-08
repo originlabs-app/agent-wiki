@@ -23,6 +23,7 @@ from atlas.core.cache import CacheEngine
 from atlas.core.analyzer import Analyzer
 from atlas.core.scanner import Scanner
 from atlas.core.ingest import IngestEngine
+from atlas.core.query import QueryEngine, QueryResult
 
 __all__ = [
     # Models
@@ -32,7 +33,9 @@ __all__ = [
     "NodeType", "Confidence", "EdgeConfidence",
     # Engines
     "GraphEngine", "WikiEngine", "CacheEngine", "Analyzer", "Scanner",
-    "IngestEngine", "Linker",
+    "IngestEngine", "Linker", "QueryEngine",
+    # Query
+    "QueryResult",
     # Storage
     "StorageBackend", "LocalStorage",
     # Utilities
