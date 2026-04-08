@@ -44,12 +44,14 @@ def extract_markdown(path: Path) -> Extraction:
             nodes.append(Node(id=heading_id, label=heading, type="document", source_file=str(path)))
             edges.append(Edge(source=file_id, target=heading_id, relation="contains", confidence="EXTRACTED"))
 
-    # Extract wikilinks as edges
+    # Extract wikilinks as edges (deduplicated by target)
+    seen_targets: set[str] = set()
     for match in _WIKILINK_RE.finditer(content):
         target = match.group(1)
         target_slug = target.rsplit("/", 1)[-1].removesuffix(".md")
         target_id = re.sub(r"[^a-z0-9]+", "_", target_slug.lower()).strip("_")
-        if target_id != file_id:
+        if target_id != file_id and target_id not in seen_targets:
+            seen_targets.add(target_id)
             edges.append(Edge(source=file_id, target=target_id, relation="references", confidence="EXTRACTED"))
 
     return Extraction(nodes=nodes, edges=edges, source_file=str(path))
